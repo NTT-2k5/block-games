@@ -1,0 +1,1776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title id="page-title">Columns Game</title>
+    <style>
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f0f0f0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+    touch-action: none;
+}
+
+#game-container {
+    width: 100%;
+    max-width: 550px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100vh; /* Make game container take full viewport height */
+    max-height: 100vh; /* Ensure it doesn't exceed viewport */
+    padding: 5px; /* Add a little padding around the game container */
+    box-sizing: border-box;
+}
+
+/* Modal Styles */
+.modal {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.1); /* Darker background for better contrast */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 15px; /* Add padding for smaller screens */
+    box-sizing: border-box;
+}
+
+.modal-content {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 75%;
+    max-height: 90vh; /* Prevent modal from being too tall */
+    overflow-y: auto; /* Allow scrolling if content overflows */
+}
+
+.modal-content h2 {
+    margin-top: 0;
+    color: #333;
+}
+
+.modal-content p {
+    text-align: left; /* Align rules to the left for readability */
+    margin-bottom: 0px;
+    line-height: 1.6;
+    color: #555;
+}
+
+.modal-content ul {
+    text-align: left;
+    padding-left: 20px; /* Indent list items */
+    margin-bottom: 15px;
+}
+
+.modal-content li {
+    margin-bottom: 8px;
+    line-height: 1.5;
+    color: #555;
+}
+
+.modal-content button {
+    padding: 10px 20px;
+    margin: 10px;
+    border: none;
+    border-radius: 5px;
+    background-color: #4CAF50;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.modal-content button:hover {
+    background-color: #45a049;
+}
+
+/* Specific style for How to Play button */
+#how-to-play-btn {
+    background-color: #2196F3; /* Blue background */
+}
+
+#how-to-play-btn:hover {
+    background-color: #1c7cd6; /* Darker blue on hover */
+}
+
+.confirm-btn-yes {
+    background-color: #F44336 !important; /* Red for confirmation */
+}
+.confirm-btn-yes:hover {
+    background-color: #d32f2f !important; /* Darker red */
+}
+.confirm-btn-no {
+    background-color: #757575 !important; /* Grey for cancel */
+}
+.confirm-btn-no:hover {
+    background-color: #616161 !important; /* Darker grey */
+}
+
+.selector-container {
+    margin-top: 10px;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%; /* Ensure full width for centering */
+}
+
+.selector-container label {
+    margin-right: 8px;
+    font-size: 1em;
+    color: #555;
+}
+
+.selector-container select {
+    padding: 5px 8px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    font-size: 0.95em;
+}
+
+
+/* Game Interface Styles */
+#game-interface {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    flex-grow: 1;
+    overflow: hidden;
+    /* display: none; is handled by JS */
+}
+
+#stats-area {
+    display: flex;
+    flex-direction: row; /* Single row */
+    align-items: center; /* Vertically align items */
+    justify-content: space-around; /* Distribute space, helps when timer is hidden */
+    width: 100%;
+    padding: 5px 12px;
+    background-color: #e0e0e0;
+    border-radius: 5px;
+    font-size: clamp(0.9em, 2.5vw, 1.1em); /* Base font size for the area */
+    flex-shrink: 0;
+    box-sizing: border-box;
+    min-height: 50px; /* Ensure a minimum height for better vertical centering of larger items */
+}
+
+.stat-item {
+    display: flex;
+    align-items: center; /* Align emoji and number vertically */
+    margin: 0 8px; /* Space between stat items, reduced slightly */
+}
+
+.stat-emoji {
+    font-size: 1.7em; /* Larger emoji */
+    margin-right: 6px; /* Space between emoji and number */
+    line-height: 1; /* Improve vertical alignment of emoji */
+}
+
+.stat-value {
+    font-size: 1.7em; /* Larger number */
+    font-weight: bold;
+    line-height: 1; /* Improve vertical alignment of numbers */
+}
+
+#time-left { /* Inherits .stat-value, specific for color */
+    color: #4CAF50; /* Default green */
+}
+
+#pause-game-btn {
+    background-color: transparent;
+    border: none;
+    font-size: 2.1em; /* Large pause emoji */
+    color: #333; /* Default text color */
+    cursor: pointer;
+    padding: 0;
+    margin-left: 8px; /* Space from the timer or highscore */
+    line-height: 1; /* Crucial for emoji vertical alignment */
+    display: flex; /* For centering emoji if it has intrinsic padding */
+    align-items: center;
+    justify-content: center;
+}
+#game-display-area {
+    display: flex;
+    width: 100%;
+    flex-grow: 1; /* Allow this area to take remaining space after stats */
+    min-height: 0; /* Important for flex children that need to scroll or manage overflow */
+}
+
+#columns-preview-area { /* Renamed from pairs-preview-area */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: top;
+    margin-top: 20px;
+    padding-right: clamp(10px, 3vw, 20px); /* Responsive padding */
+    flex-shrink: 0;
+    flex-basis: clamp(80px, 22vw, 130px); /* Adjusted base width for cycle button + less previews */
+    position: relative;
+}
+
+.column-container { /* Renamed from pair-container */
+    margin-bottom: clamp(15px, 3vh, 25px); /* Adjusted margin for fewer previews */
+    text-align: center;
+}
+
+.column-label { /* Renamed from pair-label */
+    font-size: clamp(0.9em, 2vw, 1.1em);
+    margin-top: 10px; /* Adjusted margin */
+    margin-bottom: 5px;
+}
+
+#current-column-display, #next-column-display { /* Combined, no next2 */
+    display: flex;
+    flex-direction: column; /* Stack blocks vertically */
+    align-items: center;
+}
+
+#next-label {
+    position: relative;
+    z-index: 3;
+    margin-bottom: 5px;
+}
+
+/* Styling for the 3-block column previews */
+#current-column-display .block {
+    margin: 2px 0; /* Small margin between blocks in the column */
+}
+#next-column-display .block {
+    margin: 1px 0; /* Slightly smaller margin for next previews */
+}
+
+#cycle-order-btn { /* Renamed from save-pair-btn */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    margin: 15px auto; /* Increased top margin due to less previews */
+    border: none;
+    border-radius: 5px;
+    background-color: #e0e0e0;
+    cursor: pointer;
+    width: clamp(70px, 90%, 110px); /* Slightly wider for new text */
+    font-size: clamp(0.9em, 2vw, 1.1em); /* Adjusted font size */
+    box-sizing: border-box;
+    position: relative;
+    z-index: 5;
+    min-height: 50px; /* Ensure enough height */
+}
+
+#cycle-btn-text-label { /* Renamed from save-btn-text-label */
+    margin-bottom: 0; /* No blocks below it */
+	// font-style: italic;
+	font-weight: bold;
+}
+
+
+.block {
+    margin: 1px 0;
+    border-radius: clamp(4px, 1vw, 8px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    color: white;
+    position: relative;
+    box-shadow:
+        inset 2px 2px 3px rgba(255, 255, 255, 0.3),
+        inset -2px -2px 3px rgba(0, 0, 0, 0.2),
+        2px 2px 5px rgba(0, 0, 0, 0.3);
+    /* font-size will be set dynamically or based on context */
+}
+
+/* Block Colors (add yellow) */
+.block.green { background-color: #4CAF50; }
+.block.blue { background-color: #2196F3; }
+.block.red { background-color: #F44336; }
+.block.purple { background-color: #9C27B0; }
+.block.orange { background-color: #FF9800; }
+.block.yellow { background-color: #FFEB3B; color: #333; } /* Yellow color with dark text */
+
+
+#playfield-container {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: top;
+    margin-top: 15px;
+    min-width: 0;
+    position: relative;
+}
+
+#playfield {
+    display: grid;
+    grid-template-columns: repeat(6, var(--cell-size));
+    grid-template-rows: repeat(12, var(--cell-size));
+    background-color: #d3d3d3;
+    border: 2px solid #cccccc;
+    border-radius: 8px;
+    gap: 2px;
+    padding: 2px;
+    position: relative;
+    overflow: hidden; /* Important: This will clip blocks visually falling from above */
+    max-width: 100%;
+    max-height: 100%;
+    box-sizing: content-box;
+}
+
+.playfield-cell {
+    background-color: #e0e0e0;
+    position: relative; /* For target marker */
+}
+
+.target-cell-marker::after {
+    content: '×'; /* Cross mark */
+    font-size: calc(var(--cell-size) * 0.9); /* Adjusted size relative to cell */
+    color: rgba(255, 255, 255, 0.85);
+    -webkit-text-stroke: 1px rgba(0,0,0,0.7); /* Outline for better visibility */
+    text-stroke: 1px rgba(0,0,0,0.7);
+    font-weight: bolder;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    line-height: 1; /* Ensure cross is centered */
+    z-index: 15; /* Above blocks but below combo display */
+    pointer-events: none; /* So it doesn't interfere with clicks on the cell */
+}
+
+
+.playfield-block {
+    position: absolute;
+    z-index: 10;
+    margin: 0 !important;
+}
+
+.line {
+  width: 65px;
+  height: 0;
+  border: 1px solid #C4C4C4;
+  margin: 3px auto 5px auto;
+  display:block;
+}
+
+.preview-column-block { /* For blocks shown during drag preview */
+    opacity: 0.6;
+    z-index: 5; /* Lower than placed blocks, higher than grid cells */
+    position: absolute; /* Positioned by JS */
+     box-shadow:
+        inset 1px 1px 2px rgba(255, 255, 255, 0.2),
+        inset -1px -1px 2px rgba(0, 0, 0, 0.1),
+        1px 1px 3px rgba(0, 0, 0, 0.2); /* Softer shadow for preview */
+}
+
+
+.clearing {
+    animation: clearAnimation 0.6s forwards;
+}
+
+@keyframes clearAnimation {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.5; }
+    100% { transform: scale(0); opacity: 0; }
+}
+
+#dynamic-combo-display {
+    position: absolute;
+    font-size: 3.3rem;
+    font-weight: bold;
+    color: white;
+    text-shadow: 3px 3px 3px rgba(0,0,0,0.6), 0 0 8px rgba(0,0,0,0.5);
+    z-index: 100;
+    pointer-events: none;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3);
+    transition: opacity 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    will-change: transform, opacity;
+}
+
+#dynamic-combo-display.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+#dynamic-combo-display.hide {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3);
+}
+
+
+#dynamic-combo-display.high-combo {
+    color: #FFD700;
+    text-shadow: 1px 1px 2px #A0522D, 0 0 5px #B8860B, 0 0 10px #FF8C00;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+	.modal-content {
+		max-width: 90%; /* Ensure modal fits on smaller screens */
+	}
+    #stats-area {
+        font-size: 1em; /* Base for em units in stat items */
+        padding: 6px 8px;
+    }
+    .stat-emoji {
+        font-size: 1.7em;
+    }
+    .stat-value {
+        font-size: 1.65em;
+    }
+    #pause-game-btn {
+        font-size: 2em;
+    }
+}
+@media (max-width: 400px) { /* Added finer grained responsive step */
+    #stats-area {
+        font-size: 0.9em;
+        padding: 5px 6px;
+        min-height: 40px;
+    }
+    .stat-item {
+        margin: 0 4px;
+    }
+    .stat-emoji {
+        font-size: 1.6em;
+        margin-right: 3px;
+    }
+    .stat-value {
+        font-size: 1.6em;
+    }
+}
+@media (max-width: 300px) {
+    #stats-area {
+        font-size: 0.8em; /* Further reduction for very small screens */
+    }
+     .stat-emoji {
+        font-size: 1.5em;
+    }
+    .stat-value {
+        font-size: 1.5em;
+    }
+}
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="mode-selection-modal" class="modal">
+            <div class="modal-content">
+                <h2 id="main-menu-title">Columns Game</h2>
+
+                <div class="selector-container">
+                    <label for="difficulty-selector" id="difficulty-label">Difficulty:</label>
+                    <select id="difficulty-selector">
+                        <option value="easy">Easy (4 Colors)</option>
+                        <option value="normal" selected>Normal (5 Colors)</option>
+                        <option value="hard">Hard (6 Colors)</option>
+                    </select>
+                </div>
+
+                <div class="selector-container">
+                    <label for="start-height-selector" id="start-height-label">Start Height:</label>
+                    <select id="start-height-selector">
+                        <option value="0">0</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5" selected>5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8">8</option>
+                        <option value="9">9</option>
+                    </select>
+                </div>
+
+                <button id="relax-mode-btn">Relax Mode</button>
+                <button id="timed-mode-btn">Timed Mode</button>
+                <button id="pressure-mode-btn">Pressure Mode</button>
+                <button id="target-mode-btn">Target Mode</button>
+                <button id="how-to-play-btn">How to Play</button>
+
+                <div class="selector-container" style="margin-top: 15px;">
+                    <label for="language-selector" id="language-label">Language:</label>
+                    <select id="language-selector">
+                        <option value="en">English</option>
+                        <option value="vi">Tiếng Việt</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+
+        <div id="how-to-play-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h2 id="htp-title">How to Play</h2>
+                <p><strong id="htp-objective-label">Objective:</strong> <span id="htp-objective-text"></span></p>
+                <p><strong id="htp-gameplay-label">Gameplay:</strong></p>
+                <ul>
+                    <li id="htp-gameplay-rule1"></li>
+                    <li id="htp-gameplay-rule2"></li>
+                    <li id="htp-gameplay-rule3"></li>
+                    <li id="htp-gameplay-rule4"></li>
+                </ul>
+                <p><strong id="htp-controls-label">Controls:</strong></p>
+                <ul>
+                    <li id="htp-controls-rule1"></li>
+                    <li id="htp-controls-rule2"></li>
+                    <li id="htp-controls-rule3"></li>
+                </ul>
+                <p><strong id="htp-gamemodes-label">Game Modes:</strong></p>
+                <ul>
+                    <li><strong id="htp-relaxmode-label">Relax Mode:</strong> <span id="htp-relaxmode-desc"></span></li>
+                    <li><strong id="htp-timedmode-label">Timed Mode:</strong> <span id="htp-timedmode-desc"></span></li>
+                    <li><strong id="htp-pressuremode-label">Pressure Mode:</strong> <span id="htp-pressuremode-desc"></span></li>
+                    <li><strong id="htp-targetmode-label">Target Mode:</strong> <span id="htp-targetmode-desc"></span></li>
+                </ul>
+                <button id="close-how-to-play-btn">Got it!</button>
+            </div>
+        </div>
+
+
+        <div id="game-interface" style="display: none;">
+            <div id="stats-area">
+                <div id="score-stat" class="stat-item">
+                    <span class="stat-emoji">⭐</span>
+                    <span id="score" class="stat-value">0</span>
+                </div>
+                <div id="highscore-stat" class="stat-item">
+                    <span class="stat-emoji">🏆</span>
+                    <span id="highscore" class="stat-value">0</span>
+                </div>
+                <div id="timer-stat" class="stat-item" style="display: none;"> <span class="stat-emoji">⌛</span>
+                    <span id="time-left" class="stat-value">0.0</span>
+                </div>
+                <button id="pause-game-btn" title="Pause/End Game">⏸</button>
+            </div>
+
+            <div id="game-display-area">
+                <div id="columns-preview-area">
+                    <div class="column-container current-column-container">
+                        <div class="column-label" id="now-label"><b>NOW</b></div>
+                        <div id="current-column-display">
+                            <div class="block" id="current-block-top"></div>
+                            <div class="block" id="current-block-middle"></div>
+                            <div class="block" id="current-block-bottom"></div>
+                        </div>
+                    </div>
+                    <div class="line"></div>
+
+                    <div class="column-container next-column-container">
+                        <div class="column-label" id="next-label">Next</div>
+                        <div id="next-column-display">
+                             <div class="block" id="next-block-top"></div>
+                             <div class="block" id="next-block-middle"></div>
+                             <div class="block" id="next-block-bottom"></div>
+                        </div>
+                        </div>
+                    <button id="cycle-order-btn">
+                        <span id="cycle-btn-text-label">Cycle Order</span>
+                    </button>
+                </div>
+                <div id="playfield-container">
+                    <div id="playfield">
+                        </div>
+                    <div id="dynamic-combo-display"></div>
+                </div>
+            </div>
+        </div>
+
+		<div id="confirm-end-game-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h2 id="confirm-end-game-title">Confirm</h2>
+                <button id="confirm-end-game-yes-btn" class="confirm-btn-yes">Yes</button>
+                <button id="confirm-end-game-no-btn" class="confirm-btn-no">No</button>
+            </div>
+        </div>
+
+        <div id="game-over-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h2 id="game-over-title">Game Over</h2> <p id="final-score-line"><span class="label">Your Final Score: </span><span id="final-score">0</span></p>
+                <p id="highscore-message-line" style="display: none;">High Score: <span id="final-highscore">0</span></p>
+                <p id="max-combo-line"><span class="label">Max Combo: </span><span id="max-combo">0</span></p><br>
+                <button id="main-menu-btn">Main Menu</button>
+            </div>
+        </div>
+    </div>
+    <script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Game Elements
+    const modeSelectionModal = document.getElementById('mode-selection-modal');
+    const gameInterface = document.getElementById('game-interface');
+    const gameOverModal = document.getElementById('game-over-modal');
+    const howToPlayModal = document.getElementById('how-to-play-modal');
+    const confirmEndGameModal = document.getElementById('confirm-end-game-modal');
+
+    const difficultySelector = document.getElementById('difficulty-selector');
+    const startHeightSelector = document.getElementById('start-height-selector');
+    const relaxModeBtn = document.getElementById('relax-mode-btn');
+    const timedModeBtn = document.getElementById('timed-mode-btn');
+    const pressureModeBtn = document.getElementById('pressure-mode-btn');
+    const targetModeBtn = document.getElementById('target-mode-btn');
+    const howToPlayBtn = document.getElementById('how-to-play-btn');
+    const closeHowToPlayBtn = document.getElementById('close-how-to-play-btn');
+    const mainmenuBtn = document.getElementById('main-menu-btn');
+    const confirmEndGameYesBtn = document.getElementById('confirm-end-game-yes-btn');
+    const confirmEndGameNoBtn = document.getElementById('confirm-end-game-no-btn');
+
+    const pauseGameBtn = document.getElementById('pause-game-btn');
+
+    const scoreDisplay = document.getElementById('score');
+    const highscoreDisplay = document.getElementById('highscore');
+    const timerStatDisplay = document.getElementById('timer-stat');
+    const timeLeftDisplay = document.getElementById('time-left');
+
+    // Current Column Display
+    const currentBlockTopDisplay = document.getElementById('current-block-top');
+    const currentBlockMiddleDisplay = document.getElementById('current-block-middle');
+    const currentBlockBottomDisplay = document.getElementById('current-block-bottom');
+
+    // Next Column Display
+    const nextBlockTopDisplay = document.getElementById('next-block-top');
+    const nextBlockMiddleDisplay = document.getElementById('next-block-middle');
+    const nextBlockBottomDisplay = document.getElementById('next-block-bottom');
+
+    const cycleOrderBtn = document.getElementById('cycle-order-btn');
+
+    const playfieldElement = document.getElementById('playfield');
+    const playfieldContainer = document.getElementById('playfield-container');
+    const finalScoreDisplay = document.getElementById('final-score');
+    const finalScoreLine = document.getElementById('final-score-line');
+    const maxcomboDisplay = document.getElementById('max-combo');
+    const maxcomboLine = document.getElementById('max-combo-line');
+    const highscoreMessageLine = document.getElementById('highscore-message-line');
+    const finalHighscoreDisplay = document.getElementById('final-highscore');
+
+    const dynamicComboDisplayElement = document.getElementById('dynamic-combo-display');
+    let dynamicComboTimeout = null;
+
+    // Language Elements
+    const languageSelector = document.getElementById('language-selector');
+    const languageLabel = document.getElementById('language-label');
+    const pageTitleElement = document.getElementById('page-title');
+    const difficultyLabel = document.getElementById('difficulty-label');
+    const startHeightLabel = document.getElementById('start-height-label');
+    const mainMenuTitle = document.getElementById('main-menu-title');
+    const htpTitle = document.getElementById('htp-title');
+    const htpObjectiveLabel = document.getElementById('htp-objective-label');
+    const htpObjectiveText = document.getElementById('htp-objective-text');
+    const htpGameplayLabel = document.getElementById('htp-gameplay-label');
+    const htpGameplayRule1 = document.getElementById('htp-gameplay-rule1');
+    const htpGameplayRule2 = document.getElementById('htp-gameplay-rule2');
+    const htpGameplayRule3 = document.getElementById('htp-gameplay-rule3');
+    const htpGameplayRule4 = document.getElementById('htp-gameplay-rule4');
+    const htpControlsLabel = document.getElementById('htp-controls-label');
+    const htpControlsRule1 = document.getElementById('htp-controls-rule1');
+    const htpControlsRule2 = document.getElementById('htp-controls-rule2');
+    const htpControlsRule3 = document.getElementById('htp-controls-rule3');
+    const htpGameModesLabel = document.getElementById('htp-gamemodes-label');
+    const htpRelaxModeLabel = document.getElementById('htp-relaxmode-label');
+    const htpRelaxModeDesc = document.getElementById('htp-relaxmode-desc');
+    const htpTimedModeLabel = document.getElementById('htp-timedmode-label');
+    const htpTimedModeDesc = document.getElementById('htp-timedmode-desc');
+    const htpPressureModeLabel = document.getElementById('htp-pressuremode-label');
+    const htpPressureModeDesc = document.getElementById('htp-pressuremode-desc');
+    const htpTargetModeLabel = document.getElementById('htp-targetmode-label');
+    const htpTargetModeDesc = document.getElementById('htp-targetmode-desc');
+
+    const nowLabel = document.getElementById('now-label');
+    const nextLabel = document.getElementById('next-label');
+    const cycleBtnTextLabel = document.getElementById('cycle-btn-text-label');
+    const gameOverTitleElement = document.getElementById('game-over-title');
+    const confirmEndGameTitle = document.getElementById('confirm-end-game-title');
+
+
+    // Game Constants
+    const ROWS = 12;
+    const COLS = 6;
+    const ALL_POSSIBLE_COLORS = ['red', 'orange', 'yellow', 'green', 'blue', 'purple'];
+    let CURRENT_COLORS = [];
+    const BLOCKS_PER_COLOR_IN_BAG = 20;
+    const FALL_SPEED = 50;
+    const TIMED_MODE_DURATION = 100 * 1000;
+    const PRESSURE_MODE_INITIAL_TIME = 10 * 1000;
+    const PRESSURE_MODE_DECREMENT = 80;
+    const PRESSURE_MODE_MIN_TIME = 500;
+    const PRESSURE_MODE_THRESHOLD_TIME = 2000;
+    const TARGET_MODE_START_SCORE = 3000;
+    const TARGET_MODE_SCORE_DECREMENT_INTERVAL = 100;
+    const TARGET_BLOCK_ROW = ROWS - 1;
+    const TARGET_BLOCK_COL = 3;
+    const GRID_PADDING = 2;
+    const GRID_GAP = 2;
+    const MAX_INITIAL_FILL_ATTEMPTS = 10000;
+
+
+    // Game State Variables
+    let gameMode = '';
+    let difficulty = 'normal';
+    let startHeight = 0;
+    let score = 0;
+    let currentHighScore = 0;
+    let combo = 0;
+    let maxcombo = 0;
+    let playfield = [];
+    let currentColumn = { blocks: [null, null, null] }; // top, middle, bottom
+    let nextColumn = { blocks: [null, null, null] };
+    let cellSize = 40;
+    let allowInput = false;
+    let isFalling = false;
+    let gameTimerInterval = null;
+    let pressureTimerInterval = null;
+    let targetModeScoreInterval = null;
+
+    let currentPressureTimeLimit = PRESSURE_MODE_INITIAL_TIME;
+    let pressureTurnEffectiveTimeLimit = 0;
+    let pressureTurnStartTime = 0;
+    let remainingTimedModeTime = 0;
+
+    let previewBlocks = [];
+    let dragStartPos = null;
+    let dragCurrentCol = -1;
+    let dragStartClientY = 0;
+
+    let currentLanguage = 'en';
+    let blockBag = [];
+
+    let isGamePaused = false;
+    let pressureTimerRemainingBeforePause = 0;
+    let pressureAnimationRequestFrameId = null;
+    let targetModeScoreBeforePause = 0;
+
+
+    const translations = {
+        en: {
+            pageTitle: "Columns Matching Game",
+            mainMenuTitle: "Columns Matching Game",
+            difficultyLabel: "Difficulty:",
+            startHeightLabel: "Start Height:",
+            easyDifficulty: "Easy (4 Colors)",
+            normalDifficulty: "Normal (5 Colors)",
+            hardDifficulty: "Hard (6 Colors)",
+            relaxMode: "Relax Mode",
+            timedMode: "Timed Mode",
+            pressureMode: "Pressure Mode",
+            targetMode: "Target Mode",
+            howToPlay: "How to Play",
+            languageSelectorLabel: "Language:",
+
+            howToPlayTitle: "How to Play",
+            htpObjectiveLabel: "<strong>Objective:</strong>",
+            htpObjectiveText: "Arrange falling columns of three blocks to create matches of 3 or more same-colored blocks horizontally, vertically, or diagonally.",
+            htpGameplayLabel: "<strong>Gameplay:</strong>",
+            htpGameplayRule1: "A column of three blocks (NOW piece) will appear, along with a preview of the NEXT piece, which you can drop in the playfield.",
+			htpGameplayRule2: "When 3 or more blocks of the same color align horizontally, vertically, or diagonally, they are cleared and you score points.",
+            htpGameplayRule3: "Other blocks will fall down right after breaking a block, which can cause a chain reaction (combo). Creating more combos will score more points!",
+            htpGameplayRule4: "The game ends if the playfield fills up and there's no space to place a new column at the top.",
+
+            htpControlsLabel: "<strong>Controls:</strong>",
+            htpControlsRule1: "Tap/click and drag left or right on the playfield to choose the column where the blocks column will drop. A preview will show the landing spot.",
+            htpControlsRule2: "Release your finger/mouse to drop the column. You can drag off the playfield to cancel the drop.",
+            htpControlsRule3: "Press the 'Cycle Order' button or Spacebar to change the order of blocks in the 'NOW' column.",
+
+            htpGameModesLabel: "<strong>Game Modes:</strong>",
+            htpRelaxModeLabel: "<strong>Relax Mode:</strong>",
+            htpRelaxModeDesc: "Play at your own pace. No timers, no pressure!",
+            htpTimedModeLabel: "<strong>Timed Mode:</strong>",
+            htpTimedModeDesc: "Score as many points as you can before the 100-second timer runs out.",
+            htpPressureModeLabel: "<strong>Pressure Mode:</strong>",
+            htpPressureModeDesc: "You have limited time for each move. This time gets shorter with each placement! If time runs out, a column drops automatically at random position.",
+            htpTargetModeLabel: "<strong>Target Mode:</strong>",
+            htpTargetModeDesc: "Clear the target block (marked '×') at the bottom-center before your score reaches zero (starting at 3000, decreasing with time). If Start Height is 0 or 1, it will be auto-set to 2.", // Updated
+            gotIt: "Got it!",
+
+            nowLabel: "<b>NOW</b>",
+            nextLabel: "Next",
+            cycleOrderLabelText: "Cycle Order",
+
+            gameOverTitle: "Game Over",
+            youWinTitle: "You Win!",
+            finalScoreLabelText: "Your Final Score: ",
+            remainingTimeLabelText: "Time Score: ",
+            newHighScoreMsg: "New High Score!",
+            highScoreMsgPrefix: "High Score: ",
+            maxComboLabelText: "Max Combo: ",
+            mainMenuLabel: "Main Menu",
+
+            confirmEndGameTitle: "Confirm End Game?",
+            confirmEndGameYes: "Yes, End Game",
+            confirmEndGameNo: "No, Continue",
+            pauseButtonTitle: "Pause / End Game"
+        },
+        vi: {
+            pageTitle: "Trò chơi Xếp Cột khối",
+            mainMenuTitle: "Trò chơi Xếp Cột khối",
+            difficultyLabel: "Độ khó:",
+            startHeightLabel: "Chiều cao bắt đầu:",
+            easyDifficulty: "Dễ (4 màu)",
+            normalDifficulty: "Thường (5 màu)",
+            hardDifficulty: "Khó (6 màu)",
+            relaxMode: "Chế độ Thư giãn",
+            timedMode: "Chế độ Tính giờ",
+            pressureMode: "Chế độ Áp lực",
+            targetMode: "Chế độ Mục tiêu",
+            howToPlay: "Hướng dẫn chơi",
+            languageSelectorLabel: "Ngôn ngữ:",
+
+            howToPlayTitle: "Hướng dẫn chơi",
+            htpObjectiveLabel: "<strong>Mục tiêu:</strong>",
+            htpObjectiveText: "Sắp xếp các cột khối rơi gồm ba khối để tạo thành các nhóm từ 3 khối cùng màu trở lên theo hàng ngang, hàng dọc, hoặc đường chéo.",
+            htpGameplayLabel: "<strong>Cách chơi:</strong>",
+            htpGameplayRule1: "Một cột gồm ba khối (khối HIỆN TẠI) sẽ xuất hiện, cùng với khối KẾ TIẾP, bạn có thể thả các cột khối này trên khu vực chơi.",
+            htpGameplayRule2: "Khi 3 khối cùng màu trở lên thẳng hàng ngang, dọc, hoặc chéo, chúng sẽ bị phá và bạn ghi điểm.",
+            htpGameplayRule3: "Các khối khác sẽ rơi xuống ngay sau khi phá khối, có thể gây ra phản ứng dây chuyền (chuỗi). Tạo nhiều chuỗi sẽ ghi được nhiều điểm hơn!",
+            htpGameplayRule4: "Trò chơi kết thúc nếu khu vực chơi bị lấp đầy và không còn đủ chỗ trống để đặt thêm một cột khối mới.",
+
+            htpControlsLabel: "<strong>Điều khiển:</strong>",
+            htpControlsRule1: "Chạm/nhấp chuột và kéo sang trái hoặc phải trên khu vực chơi để chọn cột mà cột khối sẽ rơi xuống. Một hình xem trước sẽ hiện ra nơi khối sẽ rơi xuống.",
+            htpControlsRule2: "Thả tay/chuột để thả cột khối. Bạn có thể hủy đặt khối bằng cách kéo ra khỏi khu vực chơi.",
+            htpControlsRule3: "Nhấn nút 'Đảo thứ tự' hoặc phím cách (Space) để thay đổi thứ tự các khối trong cột 'HIỆN TẠI'.",
+
+            htpGameModesLabel: "<strong>Chế độ chơi:</strong>",
+            htpRelaxModeLabel: "<strong>Chế độ Thư giãn:</strong>",
+            htpRelaxModeDesc: "Chơi theo tốc độ của bạn. Không giới hạn thời gian, không áp lực!",
+            htpTimedModeLabel: "<strong>Chế độ Tính giờ:</strong>",
+            htpTimedModeDesc: "Ghi càng nhiều điểm càng tốt trước khi hết 100 giây.",
+            htpPressureModeLabel: "<strong>Chế độ Áp lực:</strong>",
+            htpPressureModeDesc: "Bạn có thời gian giới hạn cho mỗi lần di chuyển. Thời gian này sẽ ngắn dần sau mỗi lần đặt thành công! Nếu hết giờ, một cột sẽ tự động rơi tại một vị trí ngẫu nhiên.",
+            htpTargetModeLabel: "<strong>Chế độ Mục tiêu:</strong>",
+            htpTargetModeDesc: "Hãy phá khối Mục tiêu (đánh dấu '×') ở đáy khu vực chơi trước khi điểm của bạn giảm về không (bắt đầu từ 3000, giảm dần theo thời gian). Nếu Chiều cao ban đầu là 0 hoặc 1, nó sẽ tự động được đặt thành 2.", // Updated
+            gotIt: "Đã hiểu!",
+
+            nowLabel: "<b>HIỆN TẠI</b>",
+            nextLabel: "Kế tiếp",
+            cycleOrderLabelText: "Đảo thứ tự",
+
+            gameOverTitle: "Trò chơi kết thúc",
+            youWinTitle: "Bạn đã thắng!",
+            finalScoreLabelText: "Điểm của bạn: ",
+            remainingTimeLabelText: "Điểm thời gian: ",
+            newHighScoreMsg: "Kỷ lục mới!",
+            highScoreMsgPrefix: "Điểm cao: ",
+            maxComboLabelText: "Chuỗi tối đa: ",
+            mainMenuLabel: "Menu chính",
+
+            confirmEndGameTitle: "Xác nhận Kết thúc trò chơi?",
+            confirmEndGameYes: "Có, Kết thúc",
+            confirmEndGameNo: "Không, Tiếp tục",
+            pauseButtonTitle: "Tạm dừng / Kết thúc"
+        }
+    };
+
+    function setLanguage(lang) {
+        currentLanguage = lang;
+        localStorage.setItem('columnsGameLanguage', lang);
+        languageSelector.value = lang;
+
+        const t = translations[lang] || translations.en;
+
+        pageTitleElement.textContent = t.pageTitle;
+        mainMenuTitle.textContent = t.mainMenuTitle;
+        difficultyLabel.textContent = t.difficultyLabel;
+        startHeightLabel.textContent = t.startHeightLabel;
+
+        difficultySelector.options[0].textContent = t.easyDifficulty;
+        difficultySelector.options[1].textContent = t.normalDifficulty;
+        difficultySelector.options[2].textContent = t.hardDifficulty;
+
+        relaxModeBtn.textContent = t.relaxMode;
+        timedModeBtn.textContent = t.timedMode;
+        pressureModeBtn.textContent = t.pressureMode;
+        targetModeBtn.textContent = t.targetMode;
+        howToPlayBtn.textContent = t.howToPlay;
+        languageLabel.textContent = t.languageSelectorLabel; // This was the error line
+
+        htpTitle.textContent = t.howToPlayTitle;
+        htpObjectiveLabel.innerHTML = t.htpObjectiveLabel;
+        htpObjectiveText.innerHTML = t.htpObjectiveText;
+        htpGameplayLabel.innerHTML = t.htpGameplayLabel;
+        htpGameplayRule1.innerHTML = t.htpGameplayRule1;
+        htpGameplayRule2.innerHTML = t.htpGameplayRule2;
+        htpGameplayRule3.innerHTML = t.htpGameplayRule3;
+        htpGameplayRule4.innerHTML = t.htpGameplayRule4;
+
+        htpControlsLabel.innerHTML = t.htpControlsLabel;
+        htpControlsRule1.innerHTML = t.htpControlsRule1;
+        htpControlsRule2.innerHTML = t.htpControlsRule2;
+        htpControlsRule3.innerHTML = t.htpControlsRule3;
+
+        htpGameModesLabel.innerHTML = t.htpGameModesLabel;
+        htpRelaxModeLabel.innerHTML = t.htpRelaxModeLabel;
+        htpRelaxModeDesc.innerHTML = t.htpRelaxModeDesc;
+        htpTimedModeLabel.innerHTML = t.htpTimedModeLabel;
+        htpTimedModeDesc.innerHTML = t.htpTimedModeDesc;
+        htpPressureModeLabel.innerHTML = t.htpPressureModeLabel;
+        htpPressureModeDesc.innerHTML = t.htpPressureModeDesc;
+        htpTargetModeLabel.innerHTML = t.htpTargetModeLabel;
+        htpTargetModeDesc.innerHTML = t.htpTargetModeDesc;
+        closeHowToPlayBtn.textContent = t.gotIt;
+
+        nowLabel.innerHTML = t.nowLabel;
+        nextLabel.textContent = t.nextLabel;
+        cycleBtnTextLabel.textContent = t.cycleOrderLabelText;
+
+        document.querySelector('#max-combo-line .label').textContent = t.maxComboLabelText;
+        mainmenuBtn.textContent = t.mainMenuLabel;
+
+        confirmEndGameTitle.textContent = t.confirmEndGameTitle;
+        confirmEndGameYesBtn.textContent = t.confirmEndGameYes;
+        confirmEndGameNoBtn.textContent = t.confirmEndGameNo;
+
+        if (pauseGameBtn) pauseGameBtn.title = t.pauseButtonTitle;
+    }
+
+    function loadLanguage() {
+        const savedLang = localStorage.getItem('columnsGameLanguage');
+        setLanguage(savedLang && translations[savedLang] ? savedLang : 'en');
+    }
+
+    languageSelector.addEventListener('change', (event) => setLanguage(event.target.value));
+
+    function getHighScoreKey() {
+        return `columnsHighScore_${gameMode}_${difficulty}_${startHeight}`;
+    }
+    function getHighScore() {
+        return parseInt(localStorage.getItem(getHighScoreKey()) || '0', 10);
+    }
+    function setHighScore(newScore) {
+        localStorage.setItem(getHighScoreKey(), newScore.toString());
+    }
+
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+
+    function setDifficultyColors() {
+        difficulty = difficultySelector.value;
+        switch (difficulty) {
+            case 'easy': CURRENT_COLORS = getRandomElements(ALL_POSSIBLE_COLORS, 4); break;
+            case 'hard': CURRENT_COLORS = [...ALL_POSSIBLE_COLORS]; break;
+            default: CURRENT_COLORS = getRandomElements(ALL_POSSIBLE_COLORS, 5); break;
+        }
+    }
+
+    function getRandomElements(arr, count) {
+        return [...arr].sort(() => 0.5 - Math.random()).slice(0, count);
+    }
+
+    function generateBlockBag() {
+        blockBag = [];
+        CURRENT_COLORS.forEach(color => {
+            for (let i = 0; i < BLOCKS_PER_COLOR_IN_BAG; i++) blockBag.push(color);
+        });
+        shuffleArray(blockBag);
+    }
+
+    function drawFromBag(count = 1) {
+        const drawn = [];
+        for (let i = 0; i < count; i++) {
+            if (blockBag.length === 0) generateBlockBag();
+            if (blockBag.length === 0) { // Safety net
+                drawn.push(ALL_POSSIBLE_COLORS[Math.floor(Math.random() * ALL_POSSIBLE_COLORS.length)]);
+                continue;
+            }
+            drawn.push(blockBag.shift());
+        }
+        return drawn;
+    }
+
+    function initGame() {
+        modeSelectionModal.style.display = 'none';
+        gameOverModal.style.display = 'none';
+        howToPlayModal.style.display = 'none';
+        confirmEndGameModal.style.display = 'none';
+        gameInterface.style.display = 'flex';
+        cycleOrderBtn.style.display = 'flex';
+
+        isGamePaused = false;
+        if (pressureAnimationRequestFrameId) cancelAnimationFrame(pressureAnimationRequestFrameId);
+        if (pressureTimerInterval) clearTimeout(pressureTimerInterval);
+        if (gameTimerInterval) clearInterval(gameTimerInterval);
+        if (targetModeScoreInterval) clearInterval(targetModeScoreInterval);
+
+        setDifficultyColors();
+        startHeight = parseInt(startHeightSelector.value, 10);
+        score = 0; combo = 0; maxcombo = 0;
+        currentHighScore = getHighScore();
+        updateScoreDisplay();
+        highscoreDisplay.textContent = currentHighScore;
+        timerStatDisplay.style.display = 'none';
+        scoreDisplay.style.color = '#000';
+
+        if (gameMode === 'timed') {
+            timerStatDisplay.style.display = 'flex';
+            startTimedModeTimer();
+        } else if (gameMode === 'pressure') {
+            timerStatDisplay.style.display = 'flex';
+            currentPressureTimeLimit = PRESSURE_MODE_INITIAL_TIME;
+            pressureTurnEffectiveTimeLimit = currentPressureTimeLimit;
+            startPressureTurnTimer();
+        } else if (gameMode === 'target') {
+            score = TARGET_MODE_START_SCORE;
+            updateScoreDisplay();
+            if (startHeight < 2) startHeight = 2;
+            startTargetModeTimer();
+        }
+
+        clearPlayfieldArray();
+        generatePlayfieldCells();
+        adjustCellSize(); 
+
+        generateBlockBag();
+        currentColumn = generateNewColumnDefinition();
+        nextColumn = generateNewColumnDefinition();
+
+        updatePreviewDisplays();
+
+        allowInput = true; isFalling = false;
+        dynamicComboDisplayElement.classList.remove('show', 'hide');
+        removeTargetMarker();
+        if (gameMode === 'target') addTargetMarker();
+
+        console.log(`Game initialized: Mode=${gameMode}, Difficulty=${difficulty}, StartHeight=${startHeight}, HighScore=${currentHighScore}`);
+    }
+
+    function adjustCellSize() {
+        const playfieldPaddingAndGapsHorizontal = GRID_PADDING * 2 + (COLS - 1) * GRID_GAP;
+        const playfieldPaddingAndGapsVertical = GRID_PADDING * 2 + (ROWS - 1) * GRID_GAP;
+        const gameDisplayAreaWidth = document.getElementById('game-display-area').offsetWidth;
+        const previewAreaWidth = document.getElementById('columns-preview-area').offsetWidth;
+        const playfieldCont = document.getElementById('playfield-container');
+        playfieldCont.style.width = `calc(${gameDisplayAreaWidth}px - ${previewAreaWidth}px - 10px)`;
+        const availableWidthForPlayfield = playfieldCont.clientWidth - playfieldPaddingAndGapsHorizontal;
+        const availableHeightForPlayfield = playfieldCont.clientHeight - playfieldPaddingAndGapsVertical;
+        const cellSizeBasedOnWidth = Math.floor(availableWidthForPlayfield / COLS);
+        const cellSizeBasedOnHeight = Math.floor(availableHeightForPlayfield / ROWS);
+        cellSize = Math.max(10, Math.min(cellSizeBasedOnWidth, cellSizeBasedOnHeight));
+        document.documentElement.style.setProperty('--cell-size', `${cellSize}px`);
+
+        const previewBlockSize = Math.max(15, Math.floor(cellSize * 0.80));
+        const currentPreviewBlockSize = Math.max(18, Math.floor(previewBlockSize * 1.15));
+        document.querySelectorAll('#current-column-display .block').forEach(b => {
+            b.style.width = `${currentPreviewBlockSize}px`; b.style.height = `${currentPreviewBlockSize}px`;
+            b.style.fontSize = `${currentPreviewBlockSize * 0.5}px`; b.style.borderRadius = `${Math.floor(currentPreviewBlockSize * 0.2)}px`;
+        });
+        document.querySelectorAll('#next-column-display .block').forEach(b => {
+            b.style.width = `${previewBlockSize}px`; b.style.height = `${previewBlockSize}px`;
+            b.style.fontSize = `${previewBlockSize * 0.5}px`; b.style.borderRadius = `${Math.floor(previewBlockSize * 0.2)}px`;
+        });
+        document.documentElement.style.setProperty('--column-preview-height', `${previewBlockSize * 3 + 4}px`);
+
+        playfieldElement.style.width = `${COLS * cellSize + (COLS - 1) * GRID_GAP}px`;
+        playfieldElement.style.height = `${ROWS * cellSize + (ROWS - 1) * GRID_GAP}px`;
+
+        fillInitialBlocks();
+        renderPlayfield();
+        if (gameMode === 'target') addTargetMarker();
+    }
+
+    window.addEventListener('resize', () => {
+        if (gameInterface.style.display === 'flex') adjustCellSize();
+    });
+
+    function clearPlayfieldArray() {
+        playfield = Array(ROWS).fill(null).map(() => Array(COLS).fill(null));
+    }
+
+    function generatePlayfieldCells() {
+        playfieldElement.innerHTML = '';
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                const cell = document.createElement('div');
+                cell.classList.add('playfield-cell');
+                cell.dataset.row = r; cell.dataset.col = c;
+                playfieldElement.appendChild(cell);
+            }
+        }
+    }
+
+    function fillInitialBlocks() {
+        if (startHeight === 0) return;
+        let attempts = 0;
+        while (attempts < MAX_INITIAL_FILL_ATTEMPTS) {
+            attempts++;
+            clearPlayfieldArray();
+            let possible = true;
+            for (let r = ROWS - 1; r >= ROWS - startHeight; r--) {
+                for (let c = 0; c < COLS; c++) {
+                    let placedWithoutMatch = false;
+                    const shuffledColors = [...CURRENT_COLORS].sort(() => 0.5 - Math.random());
+                    for (const color of shuffledColors) {
+                        playfield[r][c] = { color: color, id: `init_${r}_${c}_${Math.random()}`.slice(0,15), isTarget: (gameMode === 'target' && r === TARGET_BLOCK_ROW && c === TARGET_BLOCK_COL) };
+                        if (!checkMatchesAt(r, c, color) && !checkMatchesAround(r,c)) {
+                            placedWithoutMatch = true; break;
+                        }
+                    }
+                    if (!placedWithoutMatch) {
+                        playfield[r][c] = null; possible = false; break;
+                    }
+                }
+                if (!possible) break;
+            }
+            if (possible && !checkAllMatches().length > 0) { // Simpler checkAllMatches call
+                console.log(`Initial fill successful after ${attempts} attempts.`); return;
+            }
+        }
+        console.warn(`Failed to fill initial blocks without matches after ${MAX_INITIAL_FILL_ATTEMPTS} attempts. Clearing playfield.`);
+        clearPlayfieldArray();
+    }
+
+    function checkMatchesAt(r, c, color) {
+        const directions = [{ dr: 0, dc: 1 }, { dr: 1, dc: 0 }, { dr: 1, dc: 1 }, { dr: 1, dc: -1 }];
+        for (const dir of directions) {
+            let count = 1;
+            for (let i = 1; i < 3; i++) {
+                const nr = r + dir.dr * i, nc = c + dir.dc * i;
+                if (isValidCell(nr, nc) && playfield[nr][nc] && playfield[nr][nc].color === color) count++; else break;
+            }
+            for (let i = 1; i < 3; i++) {
+                const nr = r - dir.dr * i, nc = c - dir.dc * i;
+                if (isValidCell(nr, nc) && playfield[nr][nc] && playfield[nr][nc].color === color) count++; else break;
+            }
+            if (count >= 3) return true;
+        }
+        return false;
+    }
+    function checkMatchesAround(r,c) {
+        const neighbors = getNeighbors(r,c, true);
+        for(const n of neighbors) {
+            if(playfield[n.r][n.c] && checkMatchesAt(n.r, n.c, playfield[n.r][n.c].color)) return true;
+        }
+        return false;
+    }
+
+    function generateNewColumnDefinition() {
+        const rand = Math.random(); let colors;
+        if (rand < 0.10) { const color = drawFromBag(1)[0]; colors = [color, color, color]; }
+        else if (rand < 0.40) { const d = drawFromBag(2); colors = [d[0], d[0], d[1]]; }
+        else { colors = drawFromBag(3); }
+        return { blocks: [colors[0], colors[1], colors[2]] };
+    }
+
+    function advanceColumns() {
+        currentColumn = { ...nextColumn };
+        nextColumn = generateNewColumnDefinition();
+        updatePreviewDisplays();
+    }
+
+    function updatePreviewDisplays() {
+        const displays = [
+            { column: currentColumn, top: currentBlockTopDisplay, middle: currentBlockMiddleDisplay, bottom: currentBlockBottomDisplay },
+            { column: nextColumn, top: nextBlockTopDisplay, middle: nextBlockMiddleDisplay, bottom: nextBlockBottomDisplay },
+        ];
+        displays.forEach(d => {
+            if (d.column && d.column.blocks) {
+                d.top.className = `block ${d.column.blocks[0] || ''}`;
+                d.middle.className = `block ${d.column.blocks[1] || ''}`;
+                d.bottom.className = `block ${d.column.blocks[2] || ''}`;
+                d.top.textContent = ''; d.middle.textContent = ''; d.bottom.textContent = '';
+            } else {
+                d.top.className = 'block'; d.middle.className = 'block'; d.bottom.className = 'block';
+                d.top.textContent = ''; d.middle.textContent = ''; d.bottom.textContent = '';
+            }
+        });
+    }
+
+    playfieldElement.addEventListener('mousedown', handleDragStart);
+    playfieldElement.addEventListener('touchstart', handleDragStart, { passive: false });
+
+    function handleDragStart(e) {
+        if (!allowInput || isFalling || isGamePaused) return;
+        e.preventDefault();
+        const rect = playfieldElement.getBoundingClientRect();
+        const clientX = e.clientX || e.touches[0].clientX;
+        dragStartClientY = e.clientY || e.touches[0].clientY; // Retain for potential future use
+        dragStartPos = { x: clientX }; // Store initial X
+
+        // Check if the initial click/touch is horizontally outside the playfield
+        if (clientX < rect.left || clientX > rect.right) {
+            dragCurrentCol = -1; // Mark as horizontally outside
+            clearPlacementPreview(); // Ensure no preview is shown
+        } else {
+            // Horizontally inside or on edge, calculate column
+            let col = Math.floor((clientX - rect.left - GRID_PADDING) / (cellSize + GRID_GAP));
+            dragCurrentCol = Math.max(0, Math.min(COLS - 1, col)); // Clamp to valid column index
+            showPlacementPreview(dragCurrentCol); // Show preview for the targeted column
+        }
+
+        document.addEventListener('mousemove', handleDragMove);
+        document.addEventListener('touchmove', handleDragMove, { passive: false });
+        document.addEventListener('mouseup', handleDragEnd);
+        document.addEventListener('touchend', handleDragEnd);
+    }
+
+    function handleDragMove(e) {
+        if (!dragStartPos || isGamePaused) return; // Ensure drag has started and game is active
+        e.preventDefault();
+        const clientX = e.clientX || e.touches[0].clientX;
+        const playfieldRect = playfieldElement.getBoundingClientRect();
+
+        let newTargetCol;
+
+        if (clientX < playfieldRect.left || clientX > playfieldRect.right) {
+            newTargetCol = -1; // Drag is horizontally outside the playfield
+        } else {
+            // Drag is horizontally inside the playfield, calculate the column
+            let col = Math.floor((clientX - playfieldRect.left - GRID_PADDING) / (cellSize + GRID_GAP));
+            newTargetCol = Math.max(0, Math.min(COLS - 1, col)); // Clamp to a valid column index
+        }
+
+        if (newTargetCol !== dragCurrentCol) { // If the targeted column has changed (or changed to/from being outside)
+            dragCurrentCol = newTargetCol;
+            if (dragCurrentCol !== -1) {
+                showPlacementPreview(dragCurrentCol); // Now targeting a valid column, show preview
+            } else {
+                clearPlacementPreview(); // Moved outside, clear preview
+            }
+        } else if (dragCurrentCol !== -1 && previewBlocks.length === 0) {
+            // Still targeting the same valid column, but no preview is shown (e.g., if dragged back in quickly)
+            showPlacementPreview(dragCurrentCol); // Re-show preview
+        }
+        // If dragCurrentCol is -1 and newTargetCol is also -1 (still outside), do nothing.
+        // If dragCurrentCol is valid, newTargetCol is the same, and preview exists, do nothing.
+    }
+
+    async function handleDragEnd(e) {
+        document.removeEventListener('mousemove', handleDragMove);
+        document.removeEventListener('touchmove', handleDragMove);
+        document.removeEventListener('mouseup', handleDragEnd);
+        document.addEventListener('touchend', handleDragEnd);
+
+        if (!dragStartPos || isGamePaused) { // Basic checks
+            clearPlacementPreview();
+            dragStartPos = null;
+            dragCurrentCol = -1;
+            return;
+        }
+
+        const playfieldRect = playfieldElement.getBoundingClientRect();
+        let finalClientX;
+
+        // Determine the final X coordinate from the event
+        if (e.type === 'mouseup' && typeof e.clientX === 'number') {
+            finalClientX = e.clientX;
+        } else if (e.type === 'touchend' && e.changedTouches && e.changedTouches.length > 0) {
+            finalClientX = e.changedTouches[0].clientX;
+        } else if (dragStartPos) { // Fallback to the initial drag X if current cannot be determined (e.g. a tap)
+            finalClientX = dragStartPos.x;
+        } else {
+            finalClientX = -1; // Cannot determine, assume invalid
+        }
+
+        clearPlacementPreview(); // Always clear the visual preview after the drag operation concludes.
+
+        // Cancel placement if:
+        // 1. The last known targeted column (dragCurrentCol) was invalid (-1), OR
+        // 2. The final release point (finalClientX) is horizontally outside the playfield bounds.
+        if (dragCurrentCol === -1 || finalClientX < playfieldRect.left || finalClientX > playfieldRect.right) {
+            console.log("Placement cancelled: Drag ended outside horizontal playfield bounds or no valid column was targeted.");
+            dragStartPos = null;
+            dragCurrentCol = -1; // Ensure state is reset
+            return;
+        }
+
+        // If dragCurrentCol is a valid column index (0 to COLS-1), proceed with placing the column.
+        if (dragCurrentCol !== -1) {
+            const targetCol = dragCurrentCol;
+            let lowestRow = -1;
+            // Find the lowest available spot in the target column
+            for (let r = ROWS - 1; r >= 0; r--) {
+                if (!playfield[r][targetCol]) {
+                    lowestRow = r;
+                    break;
+                }
+            }
+
+            // Check if there's space for the 3 blocks of the column
+            if (lowestRow >= 2 && !playfield[lowestRow][targetCol] && !playfield[lowestRow - 1][targetCol] && !playfield[lowestRow - 2][targetCol]) {
+                allowInput = false;
+                combo = 0; // Reset combo for a new piece drop
+
+                // Define block data for the current column being placed
+                const bData = { color: currentColumn.blocks[2], id: Date.now() + '_b' + Math.random(), isTarget: (gameMode === 'target' && lowestRow === TARGET_BLOCK_ROW && targetCol === TARGET_BLOCK_COL) };
+                const mData = { color: currentColumn.blocks[1], id: Date.now() + '_m' + Math.random(), isTarget: (gameMode === 'target' && lowestRow - 1 === TARGET_BLOCK_ROW && targetCol === TARGET_BLOCK_COL) };
+                const tData = { color: currentColumn.blocks[0], id: Date.now() + '_t' + Math.random(), isTarget: (gameMode === 'target' && lowestRow - 2 === TARGET_BLOCK_ROW && targetCol === TARGET_BLOCK_COL) };
+
+                // Update playfield array
+                playfield[lowestRow][targetCol] = bData;
+                playfield[lowestRow - 1][targetCol] = mData;
+                playfield[lowestRow - 2][targetCol] = tData;
+
+                // Create visual blocks on the playfield
+                createVisualBlock(bData.color, lowestRow, targetCol, bData.id);
+                createVisualBlock(mData.color, lowestRow - 1, targetCol, mData.id);
+                createVisualBlock(tData.color, lowestRow - 2, targetCol, tData.id);
+
+                // Handle game mode specific logic (e.g., Pressure mode timer)
+                if (gameMode === 'pressure') {
+                    if (pressureTimerInterval) clearTimeout(pressureTimerInterval);
+                    if (pressureAnimationRequestFrameId) cancelAnimationFrame(pressureAnimationRequestFrameId);
+                    currentPressureTimeLimit = Math.max(PRESSURE_MODE_MIN_TIME, currentPressureTimeLimit - (currentPressureTimeLimit > PRESSURE_MODE_THRESHOLD_TIME ? PRESSURE_MODE_DECREMENT : Math.trunc(PRESSURE_MODE_DECREMENT / 10)));
+                }
+
+                advanceColumns(); // Prepare the next set of columns
+                await handleGravityAndMatches(); // Process gravity and any resulting matches
+            } else {
+                // Not enough space or other issue, check for game over
+                if (isGameOver()) {
+					if (gameMode === 'target') score = 0;
+                    handleGameOver();
+                } else {
+                    allowInput = true; // Re-enable input if game is not over
+                }
+            }
+        }
+
+        // Reset drag state for the next interaction
+        dragStartPos = null;
+        dragCurrentCol = -1;
+    }
+
+    function showPlacementPreview(col) {
+        clearPlacementPreview();
+        let lowestAvailableStartRow = -1;
+        for (let r = ROWS - 3; r >= 0; r--) {
+            if (!playfield[r][col] && !playfield[r+1][col] && !playfield[r+2][col]) {
+                let groundFound = (r + 2 === ROWS - 1);
+                if (!groundFound) {
+                    if (playfield[r+3] && playfield[r+3][col]) groundFound = true;
+                }
+                if(groundFound){ lowestAvailableStartRow = r; break; }
+            }
+        }
+        if(lowestAvailableStartRow === -1){
+            for(let r=0; r <= ROWS - 3; r++){
+                 if (!playfield[r][col] && !playfield[r+1][col] && !playfield[r+2][col]) {
+                    lowestAvailableStartRow = r; break;
+                 }
+            }
+        }
+
+        if (lowestAvailableStartRow !== -1) {
+            previewBlocks.push(createVisualBlock(currentColumn.blocks[0], lowestAvailableStartRow, col, null, true));
+            previewBlocks.push(createVisualBlock(currentColumn.blocks[1], lowestAvailableStartRow + 1, col, null, true));
+            previewBlocks.push(createVisualBlock(currentColumn.blocks[2], lowestAvailableStartRow + 2, col, null, true));
+            previewBlocks.forEach(b => { if (b) playfieldElement.appendChild(b); });
+        }
+    }
+
+    function clearPlacementPreview() {
+        previewBlocks.forEach(block => { if (block && block.parentElement) block.remove(); });
+        previewBlocks = [];
+    }
+
+    function isValidCell(row, col) { return row >= 0 && row < ROWS && col >= 0 && col < COLS; }
+
+    function createVisualBlock(color, row, col, id = null, isPreview = false) {
+        const blockElement = document.createElement('div');
+        blockElement.classList.add('block', color || 'empty');
+        blockElement.classList.toggle('preview-column-block', isPreview);
+        blockElement.classList.toggle('playfield-block', !isPreview);
+        blockElement.style.width = `${cellSize}px`; blockElement.style.height = `${cellSize}px`;
+        blockElement.style.fontSize = `${cellSize * 0.5}px`;
+        blockElement.style.left = `${GRID_PADDING + col * (cellSize + GRID_GAP)}px`;
+        blockElement.style.top = `${GRID_PADDING + row * (cellSize + GRID_GAP)}px`;
+        blockElement.style.borderRadius = `${Math.floor(cellSize * 0.2)}px`;
+        if (id) blockElement.dataset.id = id;
+        if (!isPreview && playfieldElement) playfieldElement.appendChild(blockElement);
+        return blockElement;
+    }
+
+    function renderPlayfield() {
+        playfieldElement.querySelectorAll('.playfield-block').forEach(b => b.remove());
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                if (playfield[r][c]) {
+                    createVisualBlock(playfield[r][c].color, r, c, playfield[r][c].id, false);
+                }
+            }
+        }
+    }
+    function addTargetMarker() {
+        const cell = playfieldElement.querySelector(`.playfield-cell[data-row="${TARGET_BLOCK_ROW}"][data-col="${TARGET_BLOCK_COL}"]`);
+        if (cell) cell.classList.add('target-cell-marker');
+    }
+    function removeTargetMarker() {
+        const cell = playfieldElement.querySelector('.target-cell-marker');
+        if (cell) cell.classList.remove('target-cell-marker');
+    }
+
+    function showDynamicCombo(comboValue, clearedPositions) {
+        if (!clearedPositions || clearedPositions.length === 0) {
+            dynamicComboDisplayElement.classList.remove('show', 'high-combo'); return;
+        }
+        let avgR = 0, avgC = 0;
+        clearedPositions.forEach(p => { avgR += p.r; avgC += p.c; });
+        avgR /= clearedPositions.length; avgC /= clearedPositions.length;
+        dynamicComboDisplayElement.style.top = `${GRID_PADDING + avgR * (cellSize + GRID_GAP) + cellSize / 2}px`;
+        dynamicComboDisplayElement.style.left = `${GRID_PADDING + avgC * (cellSize + GRID_GAP) + cellSize / 2}px`;
+        dynamicComboDisplayElement.textContent = `${comboValue}×`;
+        dynamicComboDisplayElement.classList.toggle('high-combo', comboValue >= 5);
+        dynamicComboDisplayElement.classList.remove('hide');
+        dynamicComboDisplayElement.classList.add('show');
+        if (dynamicComboTimeout) clearTimeout(dynamicComboTimeout);
+        dynamicComboTimeout = setTimeout(() => {
+            dynamicComboDisplayElement.classList.remove('show');
+            dynamicComboDisplayElement.classList.add('hide');
+        }, 600);
+    }
+
+    async function handleGravityAndMatches() {
+        isFalling = true; allowInput = false;
+        let madeChange;
+        do {
+            madeChange = false;
+            let fell = await applyGravity();
+            if (fell) madeChange = true;
+
+            const matchResult = await findAndClearMatches();
+            if (matchResult.count > 0) {
+                madeChange = true;
+                combo = combo === 0 ? 1 : combo + 1;
+                maxcombo = Math.max(maxcombo, combo);
+                let pts = (combo < 4) ? matchResult.count * Math.pow(2, combo -1) : matchResult.count * 8 * (combo-3);
+                if (gameMode !== 'target') score += pts;
+                updateScoreDisplay();
+                showDynamicCombo(combo, matchResult.positions);
+
+                if (gameMode === 'target' && matchResult.targetCleared) {
+                    handleGameOver(true); return;
+                }
+            }
+        } while (madeChange);
+        isFalling = false;
+        if (isGameOver()) {
+			if (gameMode === 'target') score = 0;
+            handleGameOver();
+        } else {
+            if (!isGamePaused) {
+                allowInput = true;
+                if (gameMode === 'pressure') {
+                    pressureTurnEffectiveTimeLimit = currentPressureTimeLimit;
+                    startPressureTurnTimer();
+                }
+            }
+        }
+    }
+
+    async function applyGravity() {
+        let blocksFell = false; let maxFallDistance = 0;
+        for (let c = 0; c < COLS; c++) {
+            for (let r = ROWS - 2; r >= 0; r--) {
+                if (playfield[r][c] && !playfield[r + 1][c]) {
+                    let fallDist = 0;
+                    for (let lookR = r + 1; lookR < ROWS; lookR++) {
+                        if (!playfield[lookR][c]) fallDist++; else break;
+                    }
+                    if (fallDist > 0) {
+                        const blockData = playfield[r][c];
+                        playfield[r + fallDist][c] = blockData; playfield[r][c] = null;
+                        blocksFell = true; maxFallDistance = Math.max(maxFallDistance, fallDist);
+                        const visual = playfieldElement.querySelector(`.playfield-block[data-id="${blockData.id}"]`);
+                        if (visual) {
+                            const newTop = GRID_PADDING + (r + fallDist) * (cellSize + GRID_GAP);
+                            const fallTime = fallDist * (FALL_SPEED / 1000);
+                            visual.style.transition = 'none'; void visual.offsetHeight;
+                            visual.style.transition = `top ${fallTime.toFixed(3)}s linear`;
+                            visual.style.top = `${newTop}px`;
+                        }
+                    }
+                }
+            }
+        }
+        if (blocksFell) await new Promise(resolve => setTimeout(resolve, maxFallDistance * FALL_SPEED + 50));
+        return blocksFell;
+    }
+
+    function getNeighbors(r, c, includeDiagonals = false) {
+        const n = [];
+        const dirs = [ {dr:-1,dc:0},{dr:1,dc:0},{dr:0,dc:-1},{dr:0,dc:1} ];
+        if (includeDiagonals) dirs.push({dr:-1,dc:-1},{dr:-1,dc:1},{dr:1,dc:-1},{dr:1,dc:1});
+        for (const dir of dirs) {
+            const nr = r + dir.dr, nc = c + dir.dc;
+            if (isValidCell(nr, nc)) n.push({ r: nr, c: nc });
+        }
+        return n;
+    }
+
+    function checkAllMatches() {
+        const toClearSet = new Set();
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                if (!playfield[r][c]) continue;
+                const color = playfield[r][c].color;
+                const directions = [ {dr:0,dc:1},{dr:1,dc:0},{dr:1,dc:1},{dr:1,dc:-1} ];
+                for (const dir of directions) {
+                    const line = [{r,c}];
+                    for (let i = 1; i < Math.max(ROWS,COLS); i++) {
+                        const nr = r + dir.dr * i, nc = c + dir.dc * i;
+                        if (isValidCell(nr,nc) && playfield[nr][nc] && playfield[nr][nc].color === color) {
+                            line.push({r:nr, c:nc});
+                        } else break;
+                    }
+                    if (line.length >= 3) line.forEach(cell => toClearSet.add(`${cell.r}-${cell.c}`));
+                }
+            }
+        }
+        return Array.from(toClearSet).map(s => { const [r,c] = s.split('-').map(Number); return {r,c}; });
+    }
+
+    async function findAndClearMatches() {
+        const matchedCellsRC = checkAllMatches();
+        let targetCleared = false;
+        if (matchedCellsRC.length > 0) {
+            const clrPromises = [], posForCombo = [];
+            for (const cellCoords of matchedCellsRC) {
+                const {r,c} = cellCoords;
+                posForCombo.push({r,c});
+                if (playfield[r][c]) {
+                    if (gameMode === 'target' && playfield[r][c].isTarget) targetCleared = true;
+                    const bId = playfield[r][c].id;
+                    const visual = playfieldElement.querySelector(`.playfield-block[data-id="${bId}"]`);
+                    if (visual && !visual.classList.contains('clearing')) {
+                        visual.classList.add('clearing');
+                        clrPromises.push(new Promise(res => visual.addEventListener('animationend', () => { visual.remove(); res(); }, {once:true})));
+                    } else if (visual) {
+                        clrPromises.push(new Promise(res => setTimeout(() => { if(visual.parentElement) visual.remove(); res(); }, 600)));
+                    }
+                    playfield[r][c] = null;
+                }
+            }
+            await Promise.all(clrPromises);
+            return { count: matchedCellsRC.length, positions: posForCombo, targetCleared };
+        }
+        return { count: 0, positions: [], targetCleared: false };
+    }
+
+    function startTimedModeTimer() {
+        remainingTimedModeTime = TIMED_MODE_DURATION; updateTimerDisplay(remainingTimedModeTime);
+        if(gameTimerInterval) clearInterval(gameTimerInterval);
+        gameTimerInterval = setInterval(() => {
+            if (isGamePaused || !allowInput || isFalling) return;
+            remainingTimedModeTime -= 100;
+            if (remainingTimedModeTime <= 0) {
+                remainingTimedModeTime = 0; clearInterval(gameTimerInterval); handleGameOver();
+            }
+            updateTimerDisplay(remainingTimedModeTime);
+        }, 100);
+    }
+
+    function startPressureTurnTimer() {
+        pressureTurnStartTime = Date.now(); updateTimerDisplay(pressureTurnEffectiveTimeLimit, pressureTurnEffectiveTimeLimit);
+        if (!allowInput || isGamePaused) return;
+        if (pressureTimerInterval) clearTimeout(pressureTimerInterval);
+        pressureTimerInterval = setTimeout(() => {
+            if (allowInput && !isGamePaused && gameMode === 'pressure' && !isFalling) autoPlacePressureBlock();
+        }, pressureTurnEffectiveTimeLimit);
+        if (pressureAnimationRequestFrameId) cancelAnimationFrame(pressureAnimationRequestFrameId);
+        pressureAnimationRequestFrameId = requestAnimationFrame(updatePressureBar);
+    }
+
+    function updatePressureBar() {
+        if (gameMode !== 'pressure' || isGamePaused || (!allowInput && !isFalling)) return;
+        const elapTime = Date.now() - pressureTurnStartTime;
+        const remTime = pressureTurnEffectiveTimeLimit - elapTime;
+        if (remTime <= 0 && allowInput && !isFalling) {
+            updateTimerDisplay(0, pressureTurnEffectiveTimeLimit);
+            if(pressureAnimationRequestFrameId){cancelAnimationFrame(pressureAnimationRequestFrameId);pressureAnimationRequestFrameId=null;}
+            return;
+        }
+        if (timerStatDisplay.style.display !== 'none') updateTimerDisplay(Math.max(0, remTime), pressureTurnEffectiveTimeLimit);
+        if (pressureAnimationRequestFrameId) pressureAnimationRequestFrameId = requestAnimationFrame(updatePressureBar);
+    }
+
+    function startTargetModeTimer() {
+        if(targetModeScoreInterval) clearInterval(targetModeScoreInterval);
+        targetModeScoreInterval = setInterval(() => {
+            if (isGamePaused || !allowInput || isFalling) return;
+            score--; updateScoreDisplay();
+            if (score <= 0) {
+                score = 0; updateScoreDisplay(); clearInterval(targetModeScoreInterval); handleGameOver(false);
+            }
+        }, TARGET_MODE_SCORE_DECREMENT_INTERVAL);
+    }
+
+    function updateTimerDisplay(ms, totalMs = 0) {
+        const secs = (ms / 1000).toFixed(1); timeLeftDisplay.textContent = `${secs}`;
+        let perc = 100;
+        if (gameMode === 'timed') {
+            perc = (ms/TIMED_MODE_DURATION)*100; timeLeftDisplay.style.color = perc < 20 ? 'red':'#000';
+        } else if (gameMode === 'pressure') {
+            let den = totalMs > 0 ? totalMs : pressureTurnEffectiveTimeLimit;
+            if(den > 0) perc = (ms/den)*100; else perc = ms > 0 ? 100:0;
+            timeLeftDisplay.style.color = ms < PRESSURE_MODE_THRESHOLD_TIME ? 'red':'#000';
+        } else timeLeftDisplay.style.color = '#000';
+    }
+
+    async function autoPlacePressureBlock() {
+        if (!allowInput || isFalling || isGamePaused) return;
+        allowInput = false; clearPlacementPreview();
+        const availCols = [];
+        for (let c = 0; c < COLS; c++) {
+            if (!playfield[0][c] && !playfield[1][c] && !playfield[2][c]) availCols.push(c);
+        }
+        if (availCols.length === 0) { handleGameOver(); return; }
+        const randCol = availCols[Math.floor(Math.random() * availCols.length)]; combo = 0;
+        const bData={color:currentColumn.blocks[2],id:Date.now()+'_apb'+Math.random(),isTarget:(gameMode==='target'&&2===TARGET_BLOCK_ROW&&randCol===TARGET_BLOCK_COL)};
+        const mData={color:currentColumn.blocks[1],id:Date.now()+'_apm'+Math.random(),isTarget:(gameMode==='target'&&1===TARGET_BLOCK_ROW&&randCol===TARGET_BLOCK_COL)};
+        const tData={color:currentColumn.blocks[0],id:Date.now()+'_apt'+Math.random(),isTarget:(gameMode==='target'&&0===TARGET_BLOCK_ROW&&randCol===TARGET_BLOCK_COL)};
+        playfield[2][randCol]=bData; playfield[1][randCol]=mData; playfield[0][randCol]=tData;
+        createVisualBlock(bData.color,2,randCol,bData.id); createVisualBlock(mData.color,1,randCol,mData.id); createVisualBlock(tData.color,0,randCol,tData.id);
+        currentPressureTimeLimit = Math.max(PRESSURE_MODE_MIN_TIME, currentPressureTimeLimit - (currentPressureTimeLimit > PRESSURE_MODE_THRESHOLD_TIME ? PRESSURE_MODE_DECREMENT : Math.trunc(PRESSURE_MODE_DECREMENT/10)));
+        advanceColumns(); await handleGravityAndMatches();
+    }
+
+    function isGameOver() {
+        for (let c=0; c<COLS; c++) if(!playfield[0][c]&&!playfield[1][c]&&!playfield[2][c]) return false;
+        return true;
+    }
+
+    function handleGameOver(wonTargetMode = false) {
+        console.log("Game Over! Target Won: " + wonTargetMode);
+        allowInput = false; isFalling = true;
+        if(gameTimerInterval) clearInterval(gameTimerInterval);
+        if(pressureTimerInterval) clearTimeout(pressureTimerInterval);
+        if(pressureAnimationRequestFrameId) cancelAnimationFrame(pressureAnimationRequestFrameId);
+        if(targetModeScoreInterval) clearInterval(targetModeScoreInterval);
+        if(dynamicComboTimeout) clearTimeout(dynamicComboTimeout);
+        confirmEndGameModal.style.display = 'none'; isGamePaused = false;
+        const tr = translations[currentLanguage] || translations.en;
+        let finalScoreVal = score;
+        if (wonTargetMode) {
+            gameOverTitleElement.textContent = tr.youWinTitle;
+            document.querySelector('#final-score-line .label').textContent = tr.remainingTimeLabelText;
+        } else {
+            gameOverTitleElement.textContent = tr.gameOverTitle;
+            document.querySelector('#final-score-line .label').textContent = tr.finalScoreLabelText;
+        }
+        finalScoreDisplay.textContent = finalScoreVal;
+        maxcomboDisplay.textContent = maxcombo; maxcomboLine.style.display = 'block';
+        const oldHS = getHighScore();
+        if (finalScoreVal > oldHS) {
+            setHighScore(finalScoreVal);
+            highscoreMessageLine.innerHTML = tr.newHighScoreMsg;
+            highscoreMessageLine.style.display = 'block'; finalHighscoreDisplay.textContent = finalScoreVal;
+        } else if (oldHS > 0) {
+            highscoreMessageLine.innerHTML = `${tr.highScoreMsgPrefix}<span id="final-highscore">${oldHS}</span>`;
+            highscoreMessageLine.style.display = 'block'; finalHighscoreDisplay.textContent = oldHS;
+        } else highscoreMessageLine.style.display = 'none';
+        gameInterface.style.display = 'flex'; gameOverModal.style.display = 'flex';
+    }
+
+    function updateScoreDisplay() {
+        scoreDisplay.textContent = score;
+        if (gameMode === 'target') scoreDisplay.style.color = score < 500 ? 'red' : '#000';
+    }
+
+    function cycleCurrentColumnOrder() {
+        if (!allowInput || isFalling || isGamePaused) {
+            if (!(dragStartPos && !isFalling && !isGamePaused)) return;
+        }
+        const oldTop = currentColumn.blocks[0];
+        currentColumn.blocks[0] = currentColumn.blocks[2];
+        currentColumn.blocks[2] = currentColumn.blocks[1];
+        currentColumn.blocks[1] = oldTop;
+        updatePreviewDisplays();
+        if (dragStartPos && dragCurrentCol !== -1 && !isFalling && !isGamePaused) {
+            showPlacementPreview(dragCurrentCol);
+        }
+    }
+    cycleOrderBtn.addEventListener('click', cycleCurrentColumnOrder);
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && gameInterface.style.display === 'flex' && !isGamePaused) {
+            e.preventDefault(); cycleCurrentColumnOrder();
+        }
+    });
+
+    relaxModeBtn.addEventListener('click', () => { gameMode = 'relax'; initGame(); });
+    timedModeBtn.addEventListener('click', () => { gameMode = 'timed'; initGame(); });
+    pressureModeBtn.addEventListener('click', () => { gameMode = 'pressure'; initGame(); });
+    targetModeBtn.addEventListener('click', () => { gameMode = 'target'; initGame(); });
+    howToPlayBtn.addEventListener('click', () => { howToPlayModal.style.display = 'flex'; });
+    closeHowToPlayBtn.addEventListener('click', () => { howToPlayModal.style.display = 'none'; });
+
+    mainmenuBtn.addEventListener('click', () => {
+        gameOverModal.style.display = 'none'; gameInterface.style.display = 'none';
+        cycleOrderBtn.style.display = 'none'; confirmEndGameModal.style.display = 'none';
+        modeSelectionModal.style.display = 'flex';
+        allowInput=false;isFalling=false;isGamePaused=false;
+        if(gameTimerInterval)clearInterval(gameTimerInterval); if(pressureTimerInterval)clearTimeout(pressureTimerInterval);
+        if(pressureAnimationRequestFrameId)cancelAnimationFrame(pressureAnimationRequestFrameId);
+        if(targetModeScoreInterval)clearInterval(targetModeScoreInterval); if(dynamicComboTimeout)clearTimeout(dynamicComboTimeout);
+        dynamicComboDisplayElement.classList.remove('show','hide','high-combo'); removeTargetMarker();
+        loadLanguage();
+    });
+
+    pauseGameBtn.addEventListener('click', () => {
+        if (gameOverModal.style.display === 'flex' || isGamePaused || gameInterface.style.display === 'none') return;
+        isGamePaused = true; allowInput = false;
+        confirmEndGameModal.style.display = 'flex';
+        if (gameMode === 'pressure') {
+            if(pressureTimerInterval) clearTimeout(pressureTimerInterval);
+            if(pressureAnimationRequestFrameId){cancelAnimationFrame(pressureAnimationRequestFrameId);pressureAnimationRequestFrameId=null;}
+            pressureTimerRemainingBeforePause = pressureTurnEffectiveTimeLimit - (Date.now() - pressureTurnStartTime);
+            if(pressureTimerRemainingBeforePause < 0) pressureTimerRemainingBeforePause = 0;
+        } else if (gameMode === 'target') targetModeScoreBeforePause = score;
+        if (timerStatDisplay.style.display === 'flex') timeLeftDisplay.style.opacity = '0.5';
+        if (gameMode === 'target') scoreDisplay.style.opacity = '0.5';
+    });
+
+    confirmEndGameYesBtn.addEventListener('click', () => {
+        if (timerStatDisplay.style.display === 'flex') timeLeftDisplay.style.opacity = '1';
+        if (gameMode === 'target') scoreDisplay.style.opacity = '1';
+        isGamePaused = false;
+        if (gameMode === 'target') score = 0;
+        handleGameOver(false);
+    });
+
+    confirmEndGameNoBtn.addEventListener('click', () => {
+        confirmEndGameModal.style.display = 'none';
+        isGamePaused = false; allowInput = true;
+        if (timerStatDisplay.style.display === 'flex') timeLeftDisplay.style.opacity = '1';
+        if (gameMode === 'target') scoreDisplay.style.opacity = '1';
+        if (gameMode === 'pressure') {
+            pressureTurnEffectiveTimeLimit = pressureTimerRemainingBeforePause;
+            pressureTurnStartTime = Date.now();
+            if (pressureTurnEffectiveTimeLimit > 0) {
+                if(pressureTimerInterval) clearTimeout(pressureTimerInterval);
+                pressureTimerInterval = setTimeout(() => {
+                    if(allowInput && !isGamePaused && gameMode === 'pressure' && !isFalling) autoPlacePressureBlock();
+                }, pressureTurnEffectiveTimeLimit);
+                if(pressureAnimationRequestFrameId) cancelAnimationFrame(pressureAnimationRequestFrameId);
+                pressureAnimationRequestFrameId = requestAnimationFrame(updatePressureBar);
+            } else if (allowInput && !isGamePaused && gameMode === 'pressure' && !isFalling) autoPlacePressureBlock();
+        } else if (gameMode === 'timed') updateTimerDisplay(remainingTimedModeTime); // No need to restart interval, it checks isGamePaused
+        else if (gameMode === 'target') { score = targetModeScoreBeforePause; updateScoreDisplay(); } // Interval also checks isGamePaused
+    });
+
+    loadLanguage();
+    modeSelectionModal.style.display = 'flex';
+    cycleOrderBtn.style.display = 'none';
+    gameInterface.style.display = 'none';
+    allowInput = false;
+});
+</script>
+</body>
+</html>
