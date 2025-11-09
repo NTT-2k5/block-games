@@ -1,0 +1,2121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title id="page-title">Falling Tile Matching Game</title>
+    <style>
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f0f0f0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+    touch-action: none;
+}
+
+#game-container {
+    width: 100%;
+    max-width: 550px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100vh; /* Make game container take full viewport height */
+    max-height: 100vh; /* Ensure it doesn't exceed viewport */
+    padding: 5px; /* Add a little padding around the game container */
+    box-sizing: border-box;
+}
+
+/* Modal Styles */
+.modal {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.1); /* Darker background for better contrast */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 15px; /* Add padding for smaller screens */
+    box-sizing: border-box;
+}
+
+.modal-content {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 75%;
+    max-height: 90vh; /* Prevent modal from being too tall */
+    overflow-y: auto; /* Allow scrolling if content overflows */
+}
+
+.modal-content h2 {
+    margin-top: 0;
+    color: #333;
+}
+
+.modal-content p {
+    text-align: left; /* Align rules to the left for readability */
+    margin-bottom: 0px;
+    line-height: 1.6;
+    color: #555;
+}
+
+.modal-content ul {
+    text-align: left;
+    padding-left: 20px; /* Indent list items */
+    margin-bottom: 15px;
+}
+
+.modal-content li {
+    margin-bottom: 8px;
+    line-height: 1.5;
+    color: #555;
+}
+
+.modal-content button {
+    padding: 10px 20px;
+    margin: 10px;
+    border: none;
+    border-radius: 5px;
+    background-color: #4CAF50;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.modal-content button:hover {
+    background-color: #45a049;
+}
+
+/* Specific style for How to Play button */
+#how-to-play-btn {
+    background-color: #2196F3; /* Blue background */
+}
+
+#how-to-play-btn:hover {
+    background-color: #1c7cd6; /* Darker blue on hover */
+}
+
+.confirm-btn-yes {
+    background-color: #F44336 !important; /* Red for confirmation */
+}
+.confirm-btn-yes:hover {
+    background-color: #d32f2f !important; /* Darker red */
+}
+.confirm-btn-no {
+    background-color: #757575 !important; /* Grey for cancel */
+}
+.confirm-btn-no:hover {
+    background-color: #616161 !important; /* Darker grey */
+}
+
+.language-selector-container {
+    margin-top: 15px;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.language-selector-container label {
+    margin-right: 8px;
+    font-size: 1em;
+    color: #555;
+}
+
+.language-selector-container select {
+    padding: 5px 8px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    font-size: 0.95em;
+}
+
+
+/* Game Interface Styles */
+#game-interface {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    flex-grow: 1;
+    overflow: hidden;
+    /* display: none; is handled by JS */
+}
+
+#stats-area {
+    display: flex;
+    flex-direction: row; /* Single row */
+    align-items: center; /* Vertically align items */
+    justify-content: space-around; /* Distribute space, helps when timer is hidden */
+    width: 100%;
+    padding: 5px 12px;
+    background-color: #e0e0e0;
+    border-radius: 5px;
+    font-size: clamp(0.9em, 2.5vw, 1.1em); /* Base font size for the area */
+    flex-shrink: 0;
+    box-sizing: border-box;
+    min-height: 50px; /* Ensure a minimum height for better vertical centering of larger items */
+}
+
+.stat-item {
+    display: flex;
+    align-items: center; /* Align emoji and number vertically */
+    margin: 0 8px; /* Space between stat items, reduced slightly */
+}
+
+.stat-emoji {
+    font-size: 1.7em; /* Larger emoji */
+    margin-right: 6px; /* Space between emoji and number */
+    line-height: 1; /* Improve vertical alignment of emoji */
+}
+
+.stat-value {
+    font-size: 1.7em; /* Larger number */
+    font-weight: bold;
+    line-height: 1; /* Improve vertical alignment of numbers */
+}
+
+#time-left { /* Inherits .stat-value, specific for color */
+    color: #4CAF50; /* Default green */
+}
+
+#pause-game-btn {
+    background-color: transparent;
+    border: none;
+    font-size: 2.1em; /* Large pause emoji */
+    color: #333; /* Default text color */
+    cursor: pointer;
+    padding: 0;
+    margin-left: 8px; /* Space from the timer or highscore */
+    line-height: 1; /* Crucial for emoji vertical alignment */
+    display: flex; /* For centering emoji if it has intrinsic padding */
+    align-items: center;
+    justify-content: center;
+}
+#game-display-area {
+    display: flex;
+    width: 100%;
+    flex-grow: 1; /* Allow this area to take remaining space after stats */
+    min-height: 0; /* Important for flex children that need to scroll or manage overflow */
+}
+
+#pairs-preview-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: top;
+    margin-top: 20px;
+    padding-right: clamp(10px, 3vw, 20px); /* Responsive padding */
+    flex-shrink: 0;
+    flex-basis: clamp(70px, 20vw, 120px); /* Adjusted base width for save button */
+    position: relative;
+}
+
+.pair-container {
+    margin-bottom: clamp(10px, 3vh, 20px); /* Adjusted margin */
+    text-align: center;
+}
+
+.pair-label {
+    font-size: clamp(0.9em, 2vw, 1.1em);
+    margin-top: 15px;
+    margin-bottom: 5px;
+}
+
+#current-pair, #next-pair {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.pair-container.next-pair-container {
+}
+
+#next-label {
+    position: relative;
+    z-index: 3;
+    margin-bottom: 5px;
+}
+
+#next-pair {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#next-pair > .block {
+    position: relative;
+    z-index: 2;
+}
+
+.next2-pair-container {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 100%;
+    opacity: 0.5;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+}
+
+#next2-pair {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#pairs-preview-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: top;
+    margin-top: 20px;
+    padding-right: clamp(10px, 3vw, 20px);
+    flex-shrink: 0;
+    flex-basis: clamp(70px, 20vw, 120px);
+    position: relative;
+}
+
+#save-pair-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    margin: 10px auto;
+    margin-top: 10px;
+    border: none;
+    border-radius: 5px;
+    background-color: #e0e0e0;
+    cursor: pointer;
+    width: clamp(60px, 90%, 110px);
+    font-size: clamp(0.9em, 2vw, 1.1em);
+    box-sizing: border-box;
+    position: relative;
+    z-index: 5;
+}
+
+#save-pair-btn .save-btn-text {
+    margin-bottom: 5px;
+	font-style: italic;
+}
+
+#save-pair-btn .save-btn-blocks-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#save-pair-btn .save-btn-blocks-container .block {
+    margin: 1px 0;
+}
+
+
+/*
+ * This .block style is now only used for the PREVIEW blocks
+ * outside the canvas (Next, Save, etc.).
+*/
+.block {
+    margin: 1px 0;
+    border-radius: clamp(4px, 1vw, 8px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    color: white;
+    position: relative;
+    box-shadow:
+        inset 2px 2px 3px rgba(255, 255, 255, 0.3),
+        inset -2px -2px 3px rgba(0, 0, 0, 0.2),
+        2px 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+
+.primary-block::after {
+    content: '×';
+    font-size: 1.5em;
+    color: rgba(255, 255, 255, 0.7);
+    position: absolute;
+}
+
+/* Block Colors */
+.block.green { background-color: #4CAF50; }
+.block.blue { background-color: #2196F3; }
+.block.red { background-color: #F44336; }
+.block.purple { background-color: #9C27B0; }
+.block.orange { background-color: #FF9800; }
+
+#playfield-container {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: top;
+    margin-top: 15px;
+    min-width: 0;
+    position: relative;
+}
+
+/*
+ * The #playfield DIV is replaced by a <canvas> element.
+*/
+#playfield-canvas {
+    background-color: #d3d3d3;
+    border: 2px solid #cccccc;
+    border-radius: 8px;
+    /* max-width/max-height are handled by resize logic */
+}
+
+.line {
+  width: 65px;
+  height: 0;
+  border: 1px solid #C4C4C4;
+  margin: 3px auto 5px auto;
+  display:block;
+}
+
+#dynamic-combo-display {
+    position: absolute;
+    font-size: 3.3rem;
+    font-weight: bold;
+    color: white;
+    text-shadow: 3px 3px 3px rgba(0,0,0,0.6), 0 0 8px rgba(0,0,0,0.5);
+    z-index: 100;
+    pointer-events: none;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3);
+    transition: opacity 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    will-change: transform, opacity;
+}
+
+#dynamic-combo-display.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+#dynamic-combo-display.hide {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3);
+}
+
+
+#dynamic-combo-display.high-combo {
+    color: #FFD700;
+    text-shadow: 1px 1px 2px #A0522D, 0 0 5px #B8860B, 0 0 10px #FF8C00;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .modal-content {
+        max-width: 90%; /* Ensure modal fits on smaller screens */
+    }
+    #stats-area {
+        font-size: 1em; /* Base for em units in stat items */
+        padding: 6px 8px;
+    }
+    .stat-emoji {
+        font-size: 1.7em;
+    }
+    .stat-value {
+        font-size: 1.65em;
+    }
+    #pause-game-btn {
+        font-size: 2em;
+    }
+}
+@media (max-width: 400px) { /* Added finer grained responsive step */
+    #stats-area {
+        font-size: 0.9em;
+        padding: 5px 6px;
+        min-height: 40px;
+    }
+    .stat-item {
+        margin: 0 4px;
+    }
+    .stat-emoji {
+        font-size: 1.6em;
+        margin-right: 3px;
+    }
+    .stat-value {
+        font-size: 1.6em;
+    }
+}
+@media (max-width: 300px) {
+    #stats-area {
+        font-size: 0.8em; /* Further reduction for very small screens */
+    }
+     .stat-emoji {
+        font-size: 1.5em;
+    }
+    .stat-value {
+        font-size: 1.5em;
+    }
+}
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="mode-selection-modal" class="modal">
+            <div class="modal-content">
+                <h2 id="main-menu-title">Falling Tile Matching</h2>
+                <button id="relax-mode-btn">Relax Mode</button>
+                <button id="timed-mode-btn">Timed Mode</button>
+                <button id="pressure-mode-btn">Pressure Mode</button>
+                <button id="how-to-play-btn">How to Play</button>
+                <div class="language-selector-container">
+                    <label for="language-selector" id="language-label">Language:</label>
+                    <select id="language-selector">
+                        <option value="en">English</option>
+                        <option value="vi">Tiếng Việt</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+
+        <div id="how-to-play-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h2 id="htp-title">How to Play</h2>
+                <p><span id="htp-objective-label-strong"><strong>Objective:</strong></span> <span id="htp-objective-text">Score points by matching groups of 4 or more same-colored blocks!</span></p>
+
+                <p><strong id="htp-gameplay-label">Gameplay:</strong></p>
+                <ul>
+                    <li id="htp-gameplay-rule1"></li>
+                    <li id="htp-gameplay-rule2"></li>
+                    <li id="htp-gameplay-rule3"></li>
+                    <li id="htp-gameplay-rule4"></li>
+                    <li id="htp-gameplay-rule5"></li>
+                    <li id="htp-gameplay-rule6"></li>
+                    <li id="htp-gameplay-rule7"></li>
+                    <li id="htp-gameplay-rule8"></li>
+                </ul>
+                <p><strong id="htp-gamemodes-label">Game Modes:</strong></p>
+                <ul>
+                    <li><strong id="htp-relaxmode-label">Relax Mode:</strong> <span id="htp-relaxmode-desc"></span></li>
+                    <li><strong id="htp-timedmode-label">Timed Mode:</strong> <span id="htp-timedmode-desc"></span></li>
+                    <li><strong id="htp-pressuremode-label">Pressure Mode:</strong> <span id="htp-pressuremode-desc"></span></li>
+                </ul>
+                <button id="close-how-to-play-btn">Got it!</button>
+            </div>
+        </div>
+
+
+        <div id="game-interface" style="display: none;">
+            <div id="stats-area">
+                <div id="score-stat" class="stat-item">
+                    <span class="stat-emoji">⭐</span>
+                    <span id="score" class="stat-value">0</span>
+                </div>
+                <div id="highscore-stat" class="stat-item">
+                    <span class="stat-emoji">🏆</span>
+                    <span id="highscore" class="stat-value">0</span>
+                </div>
+                <div id="timer-stat" class="stat-item" style="display: none;">
+                    <span class="stat-emoji">⌛</span>
+                    <span id="time-left" class="stat-value">0.0</span>
+                </div>
+                <button id="pause-game-btn" title="Pause/End Game">⏸</button>
+            </div>
+
+            <div id="game-display-area">
+                <div id="pairs-preview-area">
+                    <div class="pair-container current-pair-container">
+                        <div class="pair-label" id="now-label"><b>NOW</b></div>
+                        <div id="current-pair">
+                            <div class="block secondary-block" id="current-secondary"></div>
+                            <div class="block primary-block" id="current-primary"></div>
+                        </div>
+                    </div>
+                    <div class="line"></div>
+
+                    <div class="pair-container next-pair-container">
+                        <div class="pair-label" id="next-label">Next</div>
+                        <div id="next-pair">
+                            <div class="block secondary-block" id="next-secondary"></div>
+                            <div class="block primary-block" id="next-primary"></div>
+							<div class="next2-pair-container">
+                            <div id="next2-pair">
+                                <div class="block secondary-block" id="next2-secondary"></div>
+                                <div class="block primary-block" id="next2-primary"></div>
+                            </div>
+                        </div>
+                        </div>
+
+                    </div>
+                    <button id="save-pair-btn" style="display: none;">
+                        <span class="save-btn-text" id="save-btn-text-label">Save</span>
+                        <div class="save-btn-blocks-container">
+                            <div id="saved-secondary-preview" class="block"></div>
+                            <div id="saved-primary-preview" class="block"></div>
+                        </div>
+                    </button>
+                    </div>
+                <div id="playfield-container">
+                    <canvas id="playfield-canvas"></canvas>
+                    <div id="dynamic-combo-display"></div>
+                </div>
+            </div>
+        </div>
+
+		<div id="confirm-end-game-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h2 id="confirm-end-game-title">Confirm</h2>
+                <button id="confirm-end-game-yes-btn" class="confirm-btn-yes">Yes</button>
+                <button id="confirm-end-game-no-btn" class="confirm-btn-no">No</button>
+            </div>
+        </div>
+
+        <div id="game-over-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h2 id="game-over-title">Game Over</h2>
+                <p id="final-score-line"><span class="label">Your Final Score: </span><span id="final-score">0</span></p>
+                <p id="highscore-message-line" style="display: none;">High Score: <span id="final-highscore">0</span></p>
+                <p id="max-combo-line"><span class="label">Max Combo: </span><span id="max-combo">0</span></p><br>
+                <button id="main-menu-btn">Main Menu</button>
+            </div>
+        </div>
+    </div>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Game Elements
+    const modeSelectionModal = document.getElementById('mode-selection-modal');
+    const gameInterface = document.getElementById('game-interface');
+    const gameOverModal = document.getElementById('game-over-modal');
+    const howToPlayModal = document.getElementById('how-to-play-modal');
+    const confirmEndGameModal = document.getElementById('confirm-end-game-modal');
+
+    const relaxModeBtn = document.getElementById('relax-mode-btn');
+    const timedModeBtn = document.getElementById('timed-mode-btn');
+    const pressureModeBtn = document.getElementById('pressure-mode-btn');
+    const howToPlayBtn = document.getElementById('how-to-play-btn');
+    const closeHowToPlayBtn = document.getElementById('close-how-to-play-btn');
+    const mainmenuBtn = document.getElementById('main-menu-btn');
+    const confirmEndGameYesBtn = document.getElementById('confirm-end-game-yes-btn');
+    const confirmEndGameNoBtn = document.getElementById('confirm-end-game-no-btn');
+
+    const pauseGameBtn = document.getElementById('pause-game-btn');
+
+    const scoreDisplay = document.getElementById('score');
+    const highscoreDisplay = document.getElementById('highscore');
+    const timerStatDisplay = document.getElementById('timer-stat');
+    const timeLeftDisplay = document.getElementById('time-left');
+
+    const currentPrimaryDisplay = document.getElementById('current-primary');
+    const currentSecondaryDisplay = document.getElementById('current-secondary');
+    const nextPrimaryDisplay = document.getElementById('next-primary');
+    const nextSecondaryDisplay = document.getElementById('next-secondary');
+    const next2PrimaryDisplay = document.getElementById('next2-primary');
+    const next2SecondaryDisplay = document.getElementById('next2-secondary');
+
+	const savePairBtn = document.getElementById('save-pair-btn');
+    const savedPrimaryDisplay = document.getElementById('saved-primary-preview');
+    const savedSecondaryDisplay = document.getElementById('saved-secondary-preview');
+
+    // Get the canvas element and its 2D rendering context
+    const playfieldCanvas = document.getElementById('playfield-canvas');
+    const ctx = playfieldCanvas.getContext('2d');
+    const playfieldContainer = document.getElementById('playfield-container');
+
+    const finalScoreDisplay = document.getElementById('final-score');
+    const finalScoreLine = document.getElementById('final-score-line');
+    const maxcomboDisplay = document.getElementById('max-combo');
+    const maxcomboLine = document.getElementById('max-combo-line');
+    const highscoreMessageLine = document.getElementById('highscore-message-line');
+    const finalHighscoreDisplay = document.getElementById('final-highscore');
+
+    const dynamicComboDisplayElement = document.getElementById('dynamic-combo-display');
+    let dynamicComboTimeout = null;
+
+    // Language Elements (Unchanged)
+    const languageSelector = document.getElementById('language-selector');
+    const languageLabel = document.getElementById('language-label');
+    const pageTitleElement = document.getElementById('page-title');
+    const mainMenuTitle = document.getElementById('main-menu-title');
+    const htpTitle = document.getElementById('htp-title');
+    const htpObjectiveLabelStrong = document.getElementById('htp-objective-label-strong');
+    const htpObjectiveText = document.getElementById('htp-objective-text');
+    const htpGameplayLabel = document.getElementById('htp-gameplay-label');
+    const htpGameplayRule1 = document.getElementById('htp-gameplay-rule1');
+    const htpGameplayRule2 = document.getElementById('htp-gameplay-rule2');
+    const htpGameplayRule3 = document.getElementById('htp-gameplay-rule3');
+    const htpGameplayRule4 = document.getElementById('htp-gameplay-rule4');
+    const htpGameplayRule5 = document.getElementById('htp-gameplay-rule5');
+    const htpGameplayRule6 = document.getElementById('htp-gameplay-rule6');
+    const htpGameplayRule7 = document.getElementById('htp-gameplay-rule7');
+    const htpGameplayRule8 = document.getElementById('htp-gameplay-rule8');
+    const htpGameModesLabel = document.getElementById('htp-gamemodes-label');
+    const htpRelaxModeLabel = document.getElementById('htp-relaxmode-label');
+    const htpRelaxModeDesc = document.getElementById('htp-relaxmode-desc');
+    const htpTimedModeLabel = document.getElementById('htp-timedmode-label');
+    const htpTimedModeDesc = document.getElementById('htp-timedmode-desc');
+    const htpPressureModeLabel = document.getElementById('htp-pressuremode-label');
+    const htpPressureModeDesc = document.getElementById('htp-pressuremode-desc');
+    const nowLabel = document.getElementById('now-label');
+    const nextLabel = document.getElementById('next-label');
+    const saveBtnTextLabel = document.getElementById('save-btn-text-label');
+    const gameOverTitle = document.getElementById('game-over-title');
+    const confirmEndGameTitle = document.getElementById('confirm-end-game-title');
+
+
+    // Game Constants
+    const ROWS = 12;
+    const COLS = 6;
+    const COLORS = {
+        'green': '#4CAF50',
+        'blue': '#2196F3',
+        'red': '#F44336',
+        'purple': '#9C27B0',
+        'orange': '#FF9800'
+    };
+    const COLOR_NAMES = Object.keys(COLORS); 
+    
+    const BLOCKS_PER_COLOR_IN_BAG = 20;
+    const FALL_SPEED_MS_PER_ROW = 50; // Original value
+    const CLEAR_ANIMATION_DURATION = 600; // Match old CSS
+    const TIMED_MODE_DURATION = 100 * 1000;
+    const PRESSURE_MODE_INITIAL_TIME = 10 * 1000;
+    const PRESSURE_MODE_DECREMENT = 80;
+    const PRESSURE_MODE_MIN_TIME = 500;
+	const PRESSURE_MODE_THRESHOLD_TIME = 2000;
+    const GRID_PADDING = 2;
+    const GRID_GAP = 2;
+
+
+    // Game State Variables
+    let gameMode = '';
+    let score = 0;
+    let currentHighScore = 0;
+    let combo = 0;
+    let maxcombo = 0;
+    let playfield = [];
+    let currentPair = { primary: null, secondary: null };
+    let nextPair = { primary: null, secondary: null };
+	let next2Pair = { primary: null, secondary: null };
+    let savedPair = { primary: null, secondary: null };
+    let cellSize = 40;
+    let allowInput = false;
+    let isFalling = false; 
+    let gameTimerInterval = null;
+    let pressureTimerInterval = null;
+    let currentPressureTimeLimit = PRESSURE_MODE_INITIAL_TIME;
+	let pressureTurnEffectiveTimeLimit = 0;
+    let pressureTurnStartTime = 0;
+    let remainingTimedModeTime = 0;
+
+    // New state variables for canvas
+    let lastFrameTime = 0;
+    let gameLoopRequest = null;
+    let fallingBlocks = []; 
+    let clearingBlocks = []; 
+    
+    let activeFallPromiseResolver = null;
+    let activeClearPromiseResolver = null;
+    
+    let previewPrimaryPos = null;
+    let previewSecondaryPos = null;
+    
+    let blockFallSpeedPPS = 800; 
+    
+    let startDragPos = null;
+    let startCell = null;
+    let currentLanguage = 'en';
+    let blockBag = [];
+
+    // Pause state variables
+    let isGamePaused = false;
+    let pressureTimerRemainingBeforePause = 0;
+    let pressureAnimationRequestFrameId = null;
+
+
+    const translations = {
+        en: {
+            pageTitle: "Falling Tile Matching Game",
+            mainMenuTitle: "Falling Tile Matching",
+            relaxMode: "Relax Mode",
+            timedMode: "Timed Mode",
+            pressureMode: "Pressure Mode",
+            howToPlay: "How to Play",
+            languageSelectorLabel: "Language:",
+
+            howToPlayTitle: "How to Play",
+            htpObjectiveLabelStrong: "<strong>Objective:</strong>",
+            htpObjectiveText: "Arrange pairs of blocks and score points by matching groups of 4 or more same-colored blocks!",
+            htpGameplayLabel: "<strong>Gameplay:</strong>",
+            htpGameplayRule1: "You'll see a pair of blocks (NOW pair) and the Next pair that will come after. The block with the '×' is the primary block.",
+            htpGameplayRule2: "To place blocks, tap (click) on an empty cell in the playfield. This will be the position of the primary block.",
+            htpGameplayRule3: "Drag your finger (mouse) away from the primary block (up, down, left, or right) to position the secondary block next to it. Release to place the pair.",
+            htpGameplayRule4: "The placed blocks will fall to the lowest available position in their columns.",
+            htpGameplayRule5: "When 4 or more blocks of the same color are touching (not diagonally), they will form a group and clear, and you'll earn points.",
+            htpGameplayRule6: "Clearing multiple groups and making chain reaction with one placement increases your combo for more points! (e.g. 2x, 3x)",
+            htpGameplayRule7: "Use the \"Save\" button to swap the current pair with a saved pair. If no pair is saved, the current pair will be stored.",
+            htpGameplayRule8: "The game is over when there are no valid empty spots left to place a pair of blocks.",
+            htpGameModesLabel: "<strong>Game Modes:</strong>",
+            htpRelaxModeLabel: "<strong>Relax Mode:</strong>",
+            htpRelaxModeDesc: "Play at your own pace. No timers!",
+            htpTimedModeLabel: "<strong>Timed Mode:</strong>",
+            htpTimedModeDesc: "Score as many points as you can before the 100-second timer runs out.",
+            htpPressureModeLabel: "<strong>Pressure Mode:</strong>",
+            htpPressureModeDesc: "You have a limited time to make each move. This time gets shorter with each successful placement! If you run out of time, a pair will be placed for you at a random empty column.",
+            gotIt: "Got it!",
+
+            nowLabel: "<b>NOW</b>",
+            nextLabel: "Next",
+            saveLabelText: "Save",
+
+            gameOverTitle: "Game Over",
+            finalScoreLabelText: "Your Final Score: ",
+            newHighScoreMsg: "New High Score!",
+            highScoreMsgPrefix: "High Score: ",
+            maxComboLabelText: "Max Combo: ",
+            mainMenuLabel: "Main Menu",
+
+            confirmEndGameTitle: "Confirm End Game?",
+            confirmEndGameYes: "Yes, End Game",
+            confirmEndGameNo: "No, Continue",
+            pauseButtonTitle: "Pause / End Game"
+        },
+        vi: {
+            pageTitle: "Trò chơi xếp cặp khối rơi",
+            mainMenuTitle: "Trò chơi Xếp cặp khối rơi",
+            relaxMode: "Chế độ Thư giãn",
+            timedMode: "Chế độ Tính giờ",
+            pressureMode: "Chế độ Áp lực",
+            howToPlay: "Hướng dẫn chơi",
+            languageSelectorLabel: "Ngôn ngữ:",
+
+            howToPlayTitle: "Hướng dẫn chơi",
+            htpObjectiveLabelStrong: "<strong>Mục tiêu:</strong>",
+            htpObjectiveText: "Xếp các cặp khối được cho và ghi điểm bằng cách ghép thành các nhóm từ 4 khối cùng màu trở lên!",
+            htpGameplayLabel: "<strong>Cách chơi:</strong>",
+            htpGameplayRule1: "Bạn sẽ thấy một cặp khối (cặp HIỆN TẠI) và cặp \"Kế tiếp\" sẽ xuất hiện sau đó. Khối có dấu '×' là khối chính.",
+            htpGameplayRule2: "Để đặt khối, chạm (hoặc nhấp chuột) vào một ô trống trên bảng chơi. Đây sẽ là vị trí của khối chính.",
+            htpGameplayRule3: "Kéo ngón tay (chuột) ra khỏi khối chính theo hướng lên, xuống, trái hoặc phải để định vị khối phụ bên cạnh nó. Thả ra để đặt cặp khối.",
+            htpGameplayRule4: "Các khối đã đặt sẽ rơi xuống vị trí trống thấp nhất trong cột của chúng.",
+            htpGameplayRule5: "Khi có 4 khối cùng màu trở lên ở sát nhau (không theo đường chéo), chúng tạo thành một nhóm và sẽ bị phá, bạn sẽ nhận được điểm.",
+            htpGameplayRule6: "Phá nhiều nhóm, tạo ra phản ứng dây chuyền bằng một lần đặt để tăng chuỗi của bạn và tăng thêm nhiều điểm! (VD: 2x, 3x)",
+            htpGameplayRule7: "Sử dụng nút \"Lưu trữ\" để đổi cặp hiện tại với một cặp đã lưu trữ. Nếu chưa có cặp nào được lưu, cặp hiện tại sẽ được lưu trữ.",
+            htpGameplayRule8: "Trò chơi kết thúc khi không còn ô trống hợp lệ nào để đặt một cặp khối.",
+            htpGameModesLabel: "<strong>Chế độ chơi:</strong>",
+            htpRelaxModeLabel: "<strong>Chế độ Thư giãn:</strong>",
+            htpRelaxModeDesc: "Chơi theo tốc độ của riêng bạn. Không giới hạn thời gian!",
+            htpTimedModeLabel: "<strong>Chế độ Tính giờ:</strong>",
+            htpTimedModeDesc: "Ghi càng nhiều điểm càng tốt trước khi hết 100 giây.",
+            htpPressureModeLabel: "<strong>Chế độ Áp lực:</strong>",
+            htpPressureModeDesc: "Bạn bị giới hạn thời gian thực hiện mỗi nước đi. Thời gian này sẽ ngắn dần sau mỗi lần đặt thành công! Nếu hết giờ, một cặp khối sẽ được tự động đặt vào một cột trống ngẫu nhiên.",
+            gotIt: "Đã hiểu!",
+
+            nowLabel: "<b>HIỆN TẠI</b>",
+            nextLabel: "Kế tiếp",
+            saveLabelText: "Lưu trữ",
+
+            gameOverTitle: "Trò chơi kết thúc",
+            finalScoreLabelText: "Điểm của bạn: ",
+            newHighScoreMsg: "Đạt kỷ lục mới!",
+            highScoreMsgPrefix: "Điểm cao: ",
+            maxComboLabelText: "Chuỗi tối đa: ",
+            mainMenuLabel: "Menu chính",
+
+			confirmEndGameTitle: "Xác nhận Kết thúc trò chơi?",
+            confirmEndGameYes: "Có, Kết thúc",
+            confirmEndGameNo: "Không, Tiếp tục",
+            pauseButtonTitle: "Tạm dừng / Kết thúc"
+        }
+    };
+
+    function setLanguage(lang) {
+        currentLanguage = lang;
+        localStorage.setItem('gameLanguage', lang);
+        languageSelector.value = lang;
+
+        const t = translations[lang] || translations.en;
+
+        pageTitleElement.textContent = t.pageTitle;
+        mainMenuTitle.textContent = t.mainMenuTitle;
+        relaxModeBtn.textContent = t.relaxMode;
+        timedModeBtn.textContent = t.timedMode;
+        pressureModeBtn.textContent = t.pressureMode;
+        howToPlayBtn.textContent = t.howToPlay;
+        languageLabel.textContent = t.languageSelectorLabel;
+
+        htpTitle.textContent = t.howToPlayTitle;
+        htpObjectiveLabelStrong.innerHTML = t.htpObjectiveLabelStrong;
+        htpObjectiveText.innerHTML = t.htpObjectiveText;
+        htpGameplayLabel.innerHTML = t.htpGameplayLabel;
+        htpGameplayRule1.innerHTML = t.htpGameplayRule1;
+        htpGameplayRule2.innerHTML = t.htpGameplayRule2;
+        htpGameplayRule3.innerHTML = t.htpGameplayRule3;
+        htpGameplayRule4.innerHTML = t.htpGameplayRule4;
+        htpGameplayRule5.innerHTML = t.htpGameplayRule5;
+        htpGameplayRule6.innerHTML = t.htpGameplayRule6;
+        htpGameplayRule7.innerHTML = t.htpGameplayRule7;
+        htpGameplayRule8.innerHTML = t.htpGameplayRule8;
+        htpGameModesLabel.innerHTML = t.htpGameModesLabel;
+        htpRelaxModeLabel.innerHTML = t.htpRelaxModeLabel;
+        htpRelaxModeDesc.innerHTML = t.htpRelaxModeDesc;
+        htpTimedModeLabel.innerHTML = t.htpTimedModeLabel;
+        htpTimedModeDesc.innerHTML = t.htpTimedModeDesc;
+        htpPressureModeLabel.innerHTML = t.htpPressureModeLabel;
+        htpPressureModeDesc.innerHTML = t.htpPressureModeDesc;
+        closeHowToPlayBtn.textContent = t.gotIt;
+
+        nowLabel.innerHTML = t.nowLabel;
+        nextLabel.textContent = t.nextLabel;
+        saveBtnTextLabel.textContent = t.saveLabelText;
+
+        gameOverTitle.textContent = t.gameOverTitle;
+        document.querySelector('#final-score-line .label').textContent = t.finalScoreLabelText;
+        document.querySelector('#max-combo-line .label').textContent = t.maxComboLabelText;
+        mainmenuBtn.textContent = t.mainMenuLabel;
+
+		confirmEndGameTitle.textContent = t.confirmEndGameTitle;
+        confirmEndGameYesBtn.textContent = t.confirmEndGameYes;
+        confirmEndGameNoBtn.textContent = t.confirmEndGameNo;
+
+        if (pauseGameBtn) pauseGameBtn.title = t.pauseButtonTitle;
+    }
+
+    function loadLanguage() {
+        const savedLang = localStorage.getItem('gameLanguage');
+        if (savedLang && translations[savedLang]) {
+            setLanguage(savedLang);
+        } else {
+            setLanguage('en');
+        }
+    }
+
+    languageSelector.addEventListener('change', (event) => {
+        setLanguage(event.target.value);
+    });
+
+
+    function getHighScore(mode) {
+        return parseInt(localStorage.getItem(`highscore_${mode}`) || '0', 10);
+    }
+
+    function setHighScore(mode, newScore) {
+        localStorage.setItem(`highscore_${mode}`, newScore.toString());
+    }
+
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+
+    function generateBlockBag() {
+        console.log("Generating new block bag...");
+        let tempBag = [];
+        let attempts = 0;
+        const MAX_ATTEMPTS = 100;
+
+        while (attempts < MAX_ATTEMPTS) {
+            attempts++;
+            tempBag = [];
+            for (const color of COLOR_NAMES) {
+                for (let i = 0; i < BLOCKS_PER_COLOR_IN_BAG; i++) {
+                    tempBag.push(color);
+                }
+            }
+            shuffleArray(tempBag);
+
+            if (isValidBag(tempBag)) {
+                blockBag = tempBag;
+                console.log("Valid bag generated:", blockBag.slice(0,12));
+                return;
+            }
+        }
+        console.warn("Failed to generate a valid bag after MAX_ATTEMPTS. Using last shuffled bag.");
+        blockBag = tempBag;
+    }
+
+    function isValidBag(bag) {
+        if (bag.length < 8) return true;
+
+        for (let i = 0; i <= bag.length - 8; i += 2) {
+            const pairsInRange = [];
+            for (let j = 0; j < 4; j++) {
+                if (i + (j*2) + 1 < bag.length) {
+                    pairsInRange.push([bag[i + (j*2)], bag[i + (j*2) + 1]]);
+                }
+            }
+            const pairCounts = {};
+            for (const pair of pairsInRange) {
+                const p1 = pair[0];
+                const p2 = pair[1];
+                const key = p1 <= p2 ? `${p1}-${p2}` : `${p2}-${p1}`;
+                pairCounts[key] = (pairCounts[key] || 0) + 1;
+                if (pairCounts[key] >= 3) {
+                    console.log("Validation fail: 3 identical pairs in range of 8 blocks.", pairsInRange, pairCounts);
+                    return false;
+                }
+            }
+        }
+
+        if (bag.length >= 4) {
+            const firstTwoPairsColors = new Set();
+            firstTwoPairsColors.add(bag[0]);
+            firstTwoPairsColors.add(bag[1]);
+            firstTwoPairsColors.add(bag[2]);
+            firstTwoPairsColors.add(bag[3]);
+            if (firstTwoPairsColors.size > 3) {
+                console.log("Validation fail: First two pairs have more than 3 unique colors.", Array.from(firstTwoPairsColors));
+                return false;
+            }
+        }
+
+        if (bag.length >= 8) {
+            const firstFourPairsColors = new Set();
+            for (let i = 0; i < 8; i++) {
+                if (i < bag.length) firstFourPairsColors.add(bag[i]);
+            }
+            if (firstFourPairsColors.size > 4) {
+                 console.log("Validation fail: First four pairs have more than 4 unique colors.", Array.from(firstFourPairsColors));
+                return false;
+            }
+        }
+        return true;
+    }
+
+
+    function initGame() {
+        modeSelectionModal.style.display = 'none';
+        gameOverModal.style.display = 'none';
+        howToPlayModal.style.display = 'none';
+        confirmEndGameModal.style.display = 'none';
+        gameInterface.style.display = 'flex';
+        savePairBtn.style.display = 'flex';
+
+        finalScoreLine.style.display = 'block';
+        highscoreMessageLine.style.display = 'none';
+        maxcomboLine.style.display = 'none';
+
+        // Reset pause states
+        isGamePaused = false;
+        pressureTimerRemainingBeforePause = 0;
+        if (pressureAnimationRequestFrameId) {
+            cancelAnimationFrame(pressureAnimationRequestFrameId);
+            pressureAnimationRequestFrameId = null;
+        }
+        if (pressureTimerInterval) clearTimeout(pressureTimerInterval);
+        if (gameTimerInterval) clearInterval(gameTimerInterval);
+
+        // Reset new animation/state variables
+        if (gameLoopRequest) {
+            cancelAnimationFrame(gameLoopRequest);
+            gameLoopRequest = null;
+        }
+        lastFrameTime = 0;
+        fallingBlocks = [];
+        clearingBlocks = [];
+        activeFallPromiseResolver = null;
+        activeClearPromiseResolver = null;
+        previewPrimaryPos = null;
+        previewSecondaryPos = null;
+
+
+        if (gameMode === 'timed') {
+            timerStatDisplay.style.display = 'flex';
+            allowInput = true;
+            startTimedModeTimer();
+        } else if (gameMode === 'pressure') {
+            timerStatDisplay.style.display = 'flex';
+            currentPressureTimeLimit = PRESSURE_MODE_INITIAL_TIME; // Reset to initial for new game
+			pressureTurnEffectiveTimeLimit = currentPressureTimeLimit;
+            allowInput = true;
+            startPressureTurnTimer(); // This will set pressureTurnStartTime
+        } else { // Relax mode
+            timerStatDisplay.style.display = 'none';
+            allowInput = true;
+        }
+	    playfieldContainer.style.marginBottom = '15px';
+		playfieldContainer.style.marginRight = '4px';
+
+        score = 0;
+        combo = 0;
+        maxcombo = 0;
+        currentHighScore = getHighScore(gameMode);
+        updateScoreDisplay();
+        highscoreDisplay.textContent = currentHighScore;
+        clearPlayfield();
+        
+		savedPair = { primary: null, secondary: null };
+        adjustCellSize(); // This will also size the canvas
+
+        blockBag = [];
+        generateBlockBag();
+
+        if (blockBag.length >= 2) {
+            currentPair.primary = blockBag.shift();
+            currentPair.secondary = blockBag.shift();
+        } else {
+            currentPair.primary = getRandomColorFallback();
+            currentPair.secondary = getRandomColorFallback();
+        }
+        if (blockBag.length >= 2) {
+            nextPair.primary = blockBag.shift();
+            nextPair.secondary = blockBag.shift();
+        } else {
+            nextPair.primary = getRandomColorFallback();
+            nextPair.secondary = getRandomColorFallback();
+        }
+        if (blockBag.length >= 2) {
+            next2Pair.primary = blockBag.shift();
+            next2Pair.secondary = blockBag.shift();
+        } else {
+            next2Pair.primary = getRandomColorFallback();
+            next2Pair.secondary = getRandomColorFallback();
+        }
+
+        updatePreviewDisplays();
+        updateSavedPairDisplay();
+
+        isFalling = false; // Game logic is idle
+
+        dynamicComboDisplayElement.classList.remove('show', 'hide');
+        
+        // Start the continuous game loop
+        gameLoopRequest = requestAnimationFrame(gameLoop);
+        
+        console.log("Game initialized in mode:", gameMode, ", High Score:", currentHighScore, "Lang:", currentLanguage);
+    }
+
+    function updateSavedPairDisplay() {
+        const nextPairBlockSize = Math.max(15, Math.floor(cellSize * 0.85));
+        if (!savedPrimaryDisplay || !savedSecondaryDisplay) return;
+        const basePrimaryClass = 'block primary-block';
+        const baseSecondaryClass = 'block secondary-block';
+        const emptySlotColor = '#bdbdbd';
+
+        if (savedPair && savedPair.primary) {
+            savedPrimaryDisplay.className = `${basePrimaryClass} ${savedPair.primary}`;
+            savedSecondaryDisplay.className = `${baseSecondaryClass} ${savedPair.secondary}`;
+            savedPrimaryDisplay.style.backgroundColor = '';
+            savedSecondaryDisplay.style.backgroundColor = '';
+        } else {
+            savedPrimaryDisplay.className = basePrimaryClass;
+            savedSecondaryDisplay.className = baseSecondaryClass;
+            savedPrimaryDisplay.style.backgroundColor = emptySlotColor;
+            savedSecondaryDisplay.style.backgroundColor = emptySlotColor;
+            savedPrimaryDisplay.textContent = '';
+            savedSecondaryDisplay.textContent = '';
+        }
+        [savedPrimaryDisplay, savedSecondaryDisplay].forEach(b => {
+            b.style.width = `${nextPairBlockSize}px`;
+            b.style.height = `${nextPairBlockSize}px`;
+            b.style.borderRadius = `${Math.floor(nextPairBlockSize * 0.2)}px`;
+        });
+    }
+
+    function adjustCellSize() {
+        const playfieldPaddingAndGapsHorizontal = GRID_PADDING * 2 + (COLS - 1) * GRID_GAP;
+        const playfieldPaddingAndGapsVertical = GRID_PADDING * 2 + (ROWS - 1) * GRID_GAP;
+        const gameDisplayAreaWidth = document.getElementById('game-display-area').offsetWidth;
+        const previewAreaWidth = document.getElementById('pairs-preview-area').offsetWidth;
+        playfieldContainer.style.width = `calc(${gameDisplayAreaWidth}px - ${previewAreaWidth}px - 10px)`;
+        
+        const availableWidthForPlayfield = playfieldContainer.clientWidth - playfieldPaddingAndGapsHorizontal;
+        const availableHeightForPlayfield = playfieldContainer.clientHeight - playfieldPaddingAndGapsVertical;
+        
+        const cellSizeBasedOnWidth = Math.floor(availableWidthForPlayfield / COLS);
+        const cellSizeBasedOnHeight = Math.floor(availableHeightForPlayfield / ROWS);
+        cellSize = Math.max(10, Math.min(cellSizeBasedOnWidth, cellSizeBasedOnHeight));
+        if (cellSize < 10) cellSize = 10;
+        
+        document.documentElement.style.setProperty('--cell-size', `${cellSize}px`);
+
+        // Update preview block sizes (unchanged)
+        const nextPairBlockSize = Math.max(15, Math.floor(cellSize * 0.85));
+        const currentPairBlockSize = Math.max(18, Math.floor(nextPairBlockSize * 1.25));
+        document.querySelectorAll('#current-pair .block').forEach(b => {
+            b.style.width = `${currentPairBlockSize}px`;
+            b.style.height = `${currentPairBlockSize}px`;
+            b.style.borderRadius = `${Math.floor(currentPairBlockSize * 0.2)}px`;
+        });
+        document.querySelectorAll('#next-pair .block, #next2-pair .block').forEach(b => {
+            b.style.width = `${nextPairBlockSize}px`;
+            b.style.height = `${nextPairBlockSize}px`;
+            b.style.borderRadius = `${Math.floor(nextPairBlockSize * 0.2)}px`;
+        });
+        updateSavedPairDisplay();
+
+        // Set the canvas physical width and height
+        const playfieldGridWidth = COLS * cellSize + (COLS - 1) * GRID_GAP;
+        const playfieldGridHeight = ROWS * cellSize + (ROWS - 1) * GRID_GAP;
+        
+        playfieldCanvas.width = playfieldGridWidth + GRID_PADDING * 2;
+        playfieldCanvas.height = playfieldGridHeight + GRID_PADDING * 2;
+        
+        playfieldCanvas.style.width = `${playfieldCanvas.width}px`;
+        playfieldCanvas.style.height = `${playfieldCanvas.height}px`;
+
+        // Recalculate block fall speed
+        const pixelsPerRow = cellSize + GRID_GAP;
+        const secondsPerRow = FALL_SPEED_MS_PER_ROW / 1000.0;
+        blockFallSpeedPPS = pixelsPerRow / secondsPerRow;
+    }
+
+    window.addEventListener('resize', adjustCellSize);
+
+    function clearPlayfield() {
+        playfield = Array(ROWS).fill(null).map(() => Array(COLS).fill(null));
+    }
+
+    function getRandomColorFallback() {
+        return COLOR_NAMES[Math.floor(Math.random() * COLOR_NAMES.length)];
+    }
+
+    function generateNewPair() {
+        currentPair = { ...nextPair };
+        nextPair = { ...next2Pair };
+        if (blockBag.length < 2) {
+            generateBlockBag();
+        }
+        if (blockBag.length >= 2) {
+            next2Pair.primary = blockBag.shift();
+            next2Pair.secondary = blockBag.shift();
+        } else {
+            next2Pair.primary = getRandomColorFallback();
+            next2Pair.secondary = getRandomColorFallback();
+        }
+        if (!currentPair.primary) {
+            if (blockBag.length >= 2) { currentPair.primary = blockBag.shift(); currentPair.secondary = blockBag.shift(); }
+            else { currentPair.primary = getRandomColorFallback(); currentPair.secondary = getRandomColorFallback(); }
+        }
+        if (!nextPair.primary) {
+            if (blockBag.length >= 2) { nextPair.primary = blockBag.shift(); nextPair.secondary = blockBag.shift(); }
+            else { nextPair.primary = getRandomColorFallback(); nextPair.secondary = getRandomColorFallback(); }
+        }
+        updatePreviewDisplays();
+    }
+
+    function updatePreviewDisplays() {
+        if (currentPair.primary) {
+            currentPrimaryDisplay.className = `block primary-block ${currentPair.primary}`;
+            currentSecondaryDisplay.className = `block secondary-block ${currentPair.secondary}`;
+        }
+        if (nextPair.primary) {
+            nextPrimaryDisplay.className = `block primary-block ${nextPair.primary}`;
+            nextSecondaryDisplay.className = `block secondary-block ${nextPair.secondary}`;
+        }
+        if (next2Pair.primary && next2PrimaryDisplay && next2SecondaryDisplay) {
+            next2PrimaryDisplay.className = `block primary-block ${next2Pair.primary}`;
+            next2SecondaryDisplay.className = `block secondary-block ${next2Pair.secondary}`;
+        } else if (next2PrimaryDisplay && next2SecondaryDisplay) {
+            next2PrimaryDisplay.className = `block primary-block`;
+            next2SecondaryDisplay.className = `block secondary-block`;
+        }
+    }
+
+    playfieldCanvas.addEventListener('mousedown', handleDragStart);
+    playfieldCanvas.addEventListener('touchstart', handleDragStart, { passive: false });
+
+    function handleDragStart(e) {
+        if (!allowInput || isFalling || isGamePaused) return;
+        e.preventDefault();
+        
+        const rect = playfieldCanvas.getBoundingClientRect();
+        
+        const clientX = e.clientX || e.touches[0].clientX;
+        const clientY = e.clientY || e.touches[0].clientY;
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+        
+        const effectiveX = x - GRID_PADDING;
+        const effectiveY = y - GRID_PADDING;
+        let clickCol = -1;
+        let clickRow = -1;
+        for (let c = 0; c < COLS; c++) {
+            const cellStartPos = c * (cellSize + GRID_GAP);
+            const cellEndPos = cellStartPos + cellSize;
+            if (effectiveX >= cellStartPos && effectiveX < cellEndPos) { clickCol = c; break; }
+        }
+        for (let r = 0; r < ROWS; r++) {
+            const cellStartPos = r * (cellSize + GRID_GAP);
+            const cellEndPos = cellStartPos + cellSize;
+            if (effectiveY >= cellStartPos && effectiveY < cellEndPos) { clickRow = r; break; }
+        }
+        
+        if (isValidCell(clickRow, clickCol) && !playfield[clickRow][clickCol]) {
+            startCell = { row: clickRow, col: clickCol };
+            startDragPos = { x: clientX, y: clientY };
+            
+            removePlacementPreview();
+            previewPrimaryPos = { r: startCell.row, c: startCell.col };
+            
+            document.addEventListener('mousemove', handleDragMove);
+            document.addEventListener('touchmove', handleDragMove, { passive: false });
+            document.addEventListener('mouseup', handleDragEnd);
+            document.addEventListener('touchend', handleDragEnd);
+        } else {
+            startCell = null;
+            startDragPos = null;
+        }
+    }
+
+    function handleDragMove(e) {
+        if (!startCell || isGamePaused) return;
+        e.preventDefault();
+        const clientX = e.clientX || e.touches[0].clientX;
+        const clientY = e.clientY || e.touches[0].clientY;
+        const deltaX = clientX - startDragPos.x;
+        const deltaY = clientY - startDragPos.y;
+        
+        removeSecondaryBlockPreview(); 
+        
+        let secondaryPos = { ...startCell };
+        let direction = '';
+        if (Math.abs(deltaX) > Math.abs(deltaY)) {
+            if (deltaX > cellSize / 2.5) { secondaryPos.col = startCell.col + 1; direction = 'right';}
+            else if (deltaX < -cellSize / 2.5) { secondaryPos.col = startCell.col - 1; direction = 'left'; }
+        } else {
+            if (deltaY > cellSize / 2.5) { secondaryPos.row = startCell.row + 1; direction = 'down'; }
+            else if (deltaY < -cellSize / 2.5) { secondaryPos.row = startCell.row - 1; direction = 'up'; }
+        }
+        
+        if (direction && (secondaryPos.row !== startCell.row || secondaryPos.col !== startCell.col)) {
+             if (isValidCell(secondaryPos.row, secondaryPos.col)) {
+                previewSecondaryPos = { r: secondaryPos.row, c: secondaryPos.col };
+            }
+        }
+    }
+
+    async function handleDragEnd(e) {
+        if (!startCell || isGamePaused) {
+            if (startCell) { 
+                removePlacementPreview();
+                startCell = null;
+                startDragPos = null;
+                document.removeEventListener('mousemove', handleDragMove);
+                document.removeEventListener('touchmove', handleDragMove);
+                document.removeEventListener('mouseup', handleDragEnd);
+                document.removeEventListener('touchend', handleDragEnd);
+            }
+            return;
+        }
+
+        document.removeEventListener('mousemove', handleDragMove);
+        document.removeEventListener('touchmove', handleDragMove);
+        document.removeEventListener('mouseup', handleDragEnd);
+        document.removeEventListener('touchend', handleDragEnd);
+
+        const clientX = e.clientX || (e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientX : startDragPos.x);
+        const clientY = e.clientY || (e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientY : startDragPos.y);
+        const deltaX = clientX - startDragPos.x;
+        const deltaY = clientY - startDragPos.y;
+        let primaryTarget = { ...startCell };
+        let secondaryTarget = { ...startCell };
+        let placementValid = false;
+        const dragThreshold = cellSize / 2.5;
+
+        if (Math.abs(deltaX) > Math.abs(deltaY)) {
+            if (deltaX > dragThreshold) secondaryTarget.col++;
+            else if (deltaX < -dragThreshold) secondaryTarget.col--;
+        } else {
+            if (deltaY > dragThreshold) secondaryTarget.row++;
+            else if (deltaY < -dragThreshold) secondaryTarget.row--;
+        }
+        if (secondaryTarget.row === primaryTarget.row && secondaryTarget.col === primaryTarget.col) {
+            removePlacementPreview();
+            startCell = null;
+            startDragPos = null;
+            return;
+        }
+        if (isValidCell(primaryTarget.row, primaryTarget.col) && !playfield[primaryTarget.row][primaryTarget.col] &&
+            isValidCell(secondaryTarget.row, secondaryTarget.col) && !playfield[secondaryTarget.row][secondaryTarget.col]) {
+            placementValid = true;
+        }
+        
+        removePlacementPreview();
+
+        if (placementValid) {
+            allowInput = false;
+            combo = 0;
+            
+            let pBlockData = { 
+                colorName: currentPair.primary, 
+                isPrimary: true, 
+                id: Date.now() + '_p' + Math.random(),
+                isFalling: false, 
+            };
+            let sBlockData = { 
+                colorName: currentPair.secondary, 
+                isPrimary: false, 
+                id: Date.now() + '_s' + Math.random(),
+                isFalling: false,
+            };
+
+            playfield[primaryTarget.row][primaryTarget.col] = pBlockData;
+            playfield[secondaryTarget.row][secondaryTarget.col] = sBlockData;
+
+            if (gameMode === 'pressure') {
+                if (pressureTimerInterval) clearTimeout(pressureTimerInterval);
+                if (pressureAnimationRequestFrameId) cancelAnimationFrame(pressureAnimationRequestFrameId);
+                currentPressureTimeLimit = currentPressureTimeLimit > PRESSURE_MODE_THRESHOLD_TIME
+                                           ? currentPressureTimeLimit - PRESSURE_MODE_DECREMENT
+                                           : Math.max(PRESSURE_MODE_MIN_TIME, currentPressureTimeLimit - Math.trunc(PRESSURE_MODE_DECREMENT/10));
+            }
+            generateNewPair();
+            
+            await processGameTurn(); // <-- This function is now corrected
+            
+        }
+        startCell = null;
+        startDragPos = null;
+    }
+
+    function removePlacementPreview() {
+        previewPrimaryPos = null;
+        previewSecondaryPos = null;
+    }
+    function removeSecondaryBlockPreview() {
+        previewSecondaryPos = null;
+    }
+    
+    function isValidCell(row, col) {
+        return row >= 0 && row < ROWS && col >= 0 && col < COLS;
+    }
+
+    function showDynamicCombo(comboValue, clearedPositions) {
+        if (!clearedPositions || clearedPositions.length === 0) {
+            dynamicComboDisplayElement.classList.remove('show', 'high-combo');
+            return;
+        }
+        let avgRow = 0, avgCol = 0;
+        clearedPositions.forEach(pos => { avgRow += pos.r; avgCol += pos.c; });
+        avgRow /= clearedPositions.length;
+		avgCol /= clearedPositions.length;
+        
+        const topPx = gridToPixel(avgRow) + (cellSize / 2);
+        const leftPx = gridToPixel(avgCol) + (cellSize / 2);
+        
+        dynamicComboDisplayElement.style.top = `${topPx}px`;
+        dynamicComboDisplayElement.style.left = `${leftPx}px`;
+        dynamicComboDisplayElement.textContent = `${comboValue}×`;
+        dynamicComboDisplayElement.classList.toggle('high-combo', comboValue >= 5);
+        dynamicComboDisplayElement.classList.remove('hide');
+        dynamicComboDisplayElement.classList.add('show');
+        if (dynamicComboTimeout) clearTimeout(dynamicComboTimeout);
+        dynamicComboTimeout = setTimeout(() => {
+            dynamicComboDisplayElement.classList.remove('show');
+            dynamicComboDisplayElement.classList.add('hide');
+        }, 600);
+    }
+    
+    function gridToPixel(gridUnit) {
+        return GRID_PADDING + (gridUnit * (cellSize + GRID_GAP));
+    }
+
+    // ---
+    // --- *** CORRECTED GAME LOOP LOGIC *** ---
+    // ---
+    async function processGameTurn() {
+        isFalling = true; // Mark game as busy
+        
+        // First, apply gravity for the blocks just placed.
+        let fell;
+        do {
+            fell = await applyGravity_Canvas();
+            if (fell) {
+                // This small extra pause mimics the original DOM version's feel
+                await new Promise(resolve => setTimeout(resolve, FALL_SPEED_MS_PER_ROW * 1.5)); 
+            }
+        } while (fell);
+    
+        // Now, start the match-and-fall loop (the chain reaction)
+        let matchData;
+        do {
+            // Step 1: Find matches and wait for their 600ms clear animation.
+            // This creates the "levitating" pause.
+            matchData = await findAndClearMatches_Canvas();
+            
+            if (matchData.count > 0) {
+                // Step 2: Update score and show the combo pop-up *for this step*.
+                combo = combo === 0 ? 1 : combo + 1;
+                maxcombo = Math.max(maxcombo, combo);
+                if (combo < 4) score += matchData.count * Math.pow(2,combo-1);
+                else score += matchData.count * 8 * (combo-3);
+                updateScoreDisplay();
+                showDynamicCombo(combo, matchData.positions); // Fixes combo display rush
+    
+                // Step 3: Apply gravity for any blocks above the cleared ones.
+                do {
+                    fell = await applyGravity_Canvas();
+                    if (fell) {
+                        // Add the small extra pause *after* gravity finishes
+                        await new Promise(resolve => setTimeout(resolve, FALL_SPEED_MS_PER_ROW * 1.5));
+                    }
+                } while (fell);
+            }
+        } while (matchData.count > 0); // Loop again if the fall created a new match
+    
+        // All logic (placing, falling, clearing, chaining) is done.
+        isFalling = false; // Mark game as idle
+        if (isGameOver()) {
+            handleGameOver();
+        } else {
+            // Re-enable input and start timers if not paused
+            if (!isGamePaused) { 
+                allowInput = true;
+                if (gameMode === 'pressure') {
+                    pressureTurnEffectiveTimeLimit = currentPressureTimeLimit;
+                    startPressureTurnTimer();
+                }
+            }
+        }
+    }
+    // ---
+    // --- *** END OF CORRECTED LOGIC *** ---
+    // ---
+
+    async function applyGravity_Canvas() {
+        let blocksFell = false;
+        
+        for (let c = 0; c < COLS; c++) {
+            for (let r = ROWS - 2; r >= 0; r--) {
+                if (playfield[r][c] && !playfield[r+1][c]) {
+                    let fallDistance = 0;
+                    for (let lookRow = r + 1; lookRow < ROWS; lookRow++) {
+                        if (!playfield[lookRow][c]) fallDistance++;
+                        else break;
+                    }
+                    if (fallDistance > 0) {
+                        const blockData = playfield[r][c];
+                        playfield[r + fallDistance][c] = blockData;
+                        playfield[r][c] = null;
+                        
+                        blockData.isFalling = true;
+                        fallingBlocks.push({
+                            id: blockData.id,
+                            x: gridToPixel(c),
+                            y: gridToPixel(r),
+                            targetY: gridToPixel(r + fallDistance),
+                            colorName: blockData.colorName, 
+                            isPrimary: blockData.isPrimary,
+                            blockData: blockData 
+                        });
+                        blocksFell = true;
+                    }
+                }
+            }
+        }
+
+        if (blocksFell) {
+            await new Promise(resolve => {
+                activeFallPromiseResolver = resolve;
+            });
+            return true;
+        }
+        return false;
+    }
+
+    async function findAndClearMatches_Canvas() {
+        const toClearSet = new Set();
+        const visited = Array(ROWS).fill(null).map(() => Array(COLS).fill(false));
+        let clearedBlockPositionsForCombo = [];
+        
+        function getNeighbors(r, c) {
+            const neighbors = [];
+            if (r > 0) neighbors.push({ r: r - 1, c }); if (r < ROWS - 1) neighbors.push({ r: r + 1, c });
+            if (c > 0) neighbors.push({ r, c: c - 1 }); if (c < COLS - 1) neighbors.push({ r, c: c + 1 });
+            return neighbors;
+        }
+        
+        function searchN(r, c, color, currentGroup) {
+            if (!isValidCell(r,c) || visited[r][c] || !playfield[r][c] || playfield[r][c].colorName !== color) return;
+            visited[r][c] = true;
+            currentGroup.add(`${r}-${c}`);
+            const neighbors = getNeighbors(r,c);
+            for (const neighbor of neighbors) searchN(neighbor.r, neighbor.c, color, currentGroup);
+        }
+        
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                if (playfield[r][c] && !visited[r][c] && !playfield[r][c].isFalling) {
+                    const currentGroup = new Set();
+                    searchN(r, c, playfield[r][c].colorName, currentGroup);
+                    if (currentGroup.size >= 4) currentGroup.forEach(cellString => toClearSet.add(cellString));
+                }
+            }
+        }
+        
+        if (toClearSet.size > 0) {
+            toClearSet.forEach(cellString => {
+                const [r_str, c_str] = cellString.split('-');
+                const r = parseInt(r_str, 10);
+                const c = parseInt(c_str, 10);
+                
+                clearedBlockPositionsForCombo.push({r,c});
+                const blockData = playfield[r][c];
+                
+                if (blockData) {
+                    clearingBlocks.push({
+                        x: gridToPixel(c),
+                        y: gridToPixel(r),
+                        colorName: blockData.colorName,
+                        isPrimary: blockData.isPrimary,
+                        animTimer: CLEAR_ANIMATION_DURATION / 1000.0 
+                    });
+                    playfield[r][c] = null; // Set to null *before* the animation
+                }
+            });
+            
+            // Wait for the clear animation to finish
+            await new Promise(resolve => {
+                activeClearPromiseResolver = resolve;
+            });
+            
+            return { count: toClearSet.size, positions: clearedBlockPositionsForCombo };
+        }
+        return { count: 0, positions: [] };
+    }
+
+
+    function startTimedModeTimer() {
+        remainingTimedModeTime = TIMED_MODE_DURATION;
+        updateTimerDisplay(remainingTimedModeTime);
+        if (gameTimerInterval) clearInterval(gameTimerInterval);
+        gameTimerInterval = setInterval(() => {
+            if (gameMode !== 'timed' || isGamePaused) { 
+                return;
+            }
+            if (isFalling) { // Use the master 'isFalling' flag
+                return;
+            }
+            remainingTimedModeTime -= 100;
+            if (remainingTimedModeTime <= 0) {
+                remainingTimedModeTime = 0;
+                clearInterval(gameTimerInterval);
+                updateTimerDisplay(remainingTimedModeTime);
+                handleGameOver();
+            } else {
+                updateTimerDisplay(remainingTimedModeTime);
+            }
+        }, 100);
+    }
+
+    function startPressureTurnTimer() {
+        pressureTurnStartTime = Date.now();
+        updateTimerDisplay(pressureTurnEffectiveTimeLimit, pressureTurnEffectiveTimeLimit);
+
+        if (!allowInput || isGamePaused) return;
+
+        if (pressureTimerInterval) clearTimeout(pressureTimerInterval);
+        pressureTimerInterval = setTimeout(() => {
+            if (allowInput && !isGamePaused && gameMode === 'pressure' && !isFalling) {
+                 autoPlacePressureBlock();
+            }
+        }, pressureTurnEffectiveTimeLimit);
+
+        if (pressureAnimationRequestFrameId) cancelAnimationFrame(pressureAnimationRequestFrameId);
+        pressureAnimationRequestFrameId = requestAnimationFrame(updatePressureBar);
+    }
+
+    function updatePressureBar() {
+        if (gameMode !== 'pressure' || isGamePaused || (!allowInput && !isFalling)) {
+            return;
+        }
+
+        const elapsedTime = Date.now() - pressureTurnStartTime;
+        const remainingTime = pressureTurnEffectiveTimeLimit - elapsedTime;
+
+        if (remainingTime <= 0 && allowInput && !isFalling) {
+            updateTimerDisplay(0, pressureTurnEffectiveTimeLimit);
+            if (pressureAnimationRequestFrameId) { cancelAnimationFrame(pressureAnimationRequestFrameId); pressureAnimationRequestFrameId = null;}
+            return;
+        }
+
+        if (timerStatDisplay.style.display !== 'none') {
+             updateTimerDisplay(Math.max(0, remainingTime), pressureTurnEffectiveTimeLimit);
+        }
+
+        if (pressureAnimationRequestFrameId) {
+             pressureAnimationRequestFrameId = requestAnimationFrame(updatePressureBar);
+        }
+    }
+
+    function updateTimerDisplay(ms, totalMsForSegment = 0) {
+        const seconds = (ms / 1000).toFixed(1);
+        timeLeftDisplay.textContent = `${seconds}`;
+        
+		if (gameMode === 'timed') {
+			if (seconds < 20) timeLeftDisplay.style.color = 'red';
+			else timeLeftDisplay.style.color = 'black';
+		} else if (gameMode === 'pressure') {
+			if (ms < PRESSURE_MODE_THRESHOLD_TIME) timeLeftDisplay.style.color = 'red';
+			else timeLeftDisplay.style.color = 'black';
+		}
+    }
+
+    async function autoPlacePressureBlock() {
+        console.log("Pressure mode timeout! Attempting auto-placement.");
+        if (!allowInput || isFalling || isGamePaused) return;
+
+        allowInput = false;
+        removePlacementPreview();
+        const availableColumns = [];
+        for (let c = 0; c < COLS; c++) {
+            if (isValidCell(0, c) && !playfield[0][c] && isValidCell(1, c) && !playfield[1][c]) {
+                availableColumns.push(c);
+            }
+        }
+        if (availableColumns.length === 0) {
+            handleGameOver();
+            return;
+        }
+        const randomColumnIndex = Math.floor(Math.random() * availableColumns.length);
+        const chosenCol = availableColumns[randomColumnIndex];
+        const primaryRow = 1; const secondaryRow = 0;
+        const primaryCol = chosenCol; const secondaryCol = chosenCol;
+        combo = 0;
+        
+        let pBlockData = { 
+            colorName: currentPair.primary, 
+            isPrimary: true, 
+            id: Date.now() + '_ap_p' + Math.random(),
+            isFalling: false,
+        };
+        let sBlockData = { 
+            colorName: currentPair.secondary, 
+            isPrimary: false, 
+            id: Date.now() + '_ap_s' + Math.random(),
+            isFalling: false,
+        };
+        playfield[primaryRow][primaryCol] = pBlockData;
+        playfield[secondaryRow][secondaryCol] = sBlockData;
+
+        currentPressureTimeLimit = currentPressureTimeLimit > PRESSURE_MODE_THRESHOLD_TIME
+                                   ? currentPressureTimeLimit - PRESSURE_MODE_DECREMENT
+                                   : Math.max(PRESSURE_MODE_MIN_TIME, currentPressureTimeLimit - Math.trunc(PRESSURE_MODE_DECREMENT/10));
+        generateNewPair();
+        
+        await processGameTurn();
+    }
+
+    function isGameOver() {
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                if (!playfield[r][c]) {
+                    const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+                    for (const [dr, dc] of dirs) {
+                        const sr = r + dr; const sc = c + dc;
+                        if (isValidCell(sr, sc) && !playfield[sr][sc]) return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    function handleGameOver() {
+        console.log("Game Over!");
+        if (gameLoopRequest) {
+            cancelAnimationFrame(gameLoopRequest);
+            gameLoopRequest = null;
+        }
+        
+        if (pressureAnimationRequestFrameId) {
+            cancelAnimationFrame(pressureAnimationRequestFrameId);
+            pressureAnimationRequestFrameId = null;
+        }
+        isGamePaused = false;
+
+        allowInput = false;
+        isFalling = true; 
+        if (gameTimerInterval) clearInterval(gameTimerInterval);
+        if (pressureTimerInterval) clearTimeout(pressureTimerInterval);
+        if (dynamicComboTimeout) clearTimeout(dynamicComboTimeout);
+
+        confirmEndGameModal.style.display = 'none';
+        const currentTranslations = translations[currentLanguage] || translations.en;
+        finalScoreDisplay.textContent = score;
+        finalScoreLine.style.display = 'block';
+        maxcomboDisplay.textContent = maxcombo;
+        maxcomboLine.style.display = 'block';
+        const oldHighScore = getHighScore(gameMode);
+        if (score > oldHighScore) {
+            setHighScore(gameMode, score);
+            highscoreMessageLine.innerHTML = currentTranslations.newHighScoreMsg;
+            highscoreMessageLine.style.display = 'block';
+            finalHighscoreDisplay.textContent = score;
+            currentHighScore = score;
+        } else {
+            highscoreMessageLine.innerHTML = `${currentTranslations.highScoreMsgPrefix}<span id="final-highscore">${oldHighScore}</span>`;
+            highscoreMessageLine.style.display = 'block';
+            finalHighscoreDisplay.textContent = oldHighScore;
+        }
+        gameInterface.style.display = 'flex'; 
+        gameOverModal.style.display = 'flex';
+    }
+
+    function updateScoreDisplay() {
+        scoreDisplay.textContent = score;
+    }
+
+    relaxModeBtn.addEventListener('click', () => { gameMode = 'relax'; initGame(); });
+    timedModeBtn.addEventListener('click', () => { gameMode = 'timed'; initGame(); });
+    pressureModeBtn.addEventListener('click', () => { gameMode = 'pressure'; initGame(); });
+    howToPlayBtn.addEventListener('click', () => { howToPlayModal.style.display = 'flex'; });
+    closeHowToPlayBtn.addEventListener('click', () => { howToPlayModal.style.display = 'none'; });
+
+    mainmenuBtn.addEventListener('click', () => {
+        gameOverModal.style.display = 'none';
+        gameInterface.style.display = 'none';
+        savePairBtn.style.display = 'none';
+		confirmEndGameModal.style.display = 'none';
+        modeSelectionModal.style.display = 'flex';
+		allowInput = false;
+        isFalling = false;
+        isGamePaused = false; 
+        
+        if (gameLoopRequest) {
+            cancelAnimationFrame(gameLoopRequest);
+            gameLoopRequest = null;
+        }
+        
+        if (gameTimerInterval) clearInterval(gameTimerInterval);
+        if (pressureTimerInterval) clearTimeout(pressureTimerInterval);
+        if (pressureAnimationRequestFrameId) {
+            cancelAnimationFrame(pressureAnimationRequestFrameId);
+            pressureAnimationRequestFrameId = null;
+        }
+        if (dynamicComboTimeout) clearTimeout(dynamicComboTimeout);
+        dynamicComboDisplayElement.classList.remove('show', 'hide', 'high-combo');
+        loadLanguage();
+    });
+
+    pauseGameBtn.addEventListener('click', () => {
+        if (gameOverModal.style.display === 'flex' || isGamePaused) return;
+        isGamePaused = true; allowInput = false;
+        gameInterface.style.display = 'none';
+        confirmEndGameModal.style.display = 'flex';
+
+        if (gameMode === 'pressure') {
+            if (pressureTimerInterval) clearTimeout(pressureTimerInterval);
+            if (pressureAnimationRequestFrameId) { cancelAnimationFrame(pressureAnimationRequestFrameId); pressureAnimationRequestFrameId = null; }
+            const elapsedTimeThisTurn = Date.now() - pressureTurnStartTime;
+            pressureTimerRemainingBeforePause = pressureTurnEffectiveTimeLimit - elapsedTimeThisTurn;
+            if (pressureTimerRemainingBeforePause < 0) pressureTimerRemainingBeforePause = 0;
+            updateTimerDisplay(pressureTimerRemainingBeforePause, pressureTimerRemainingBeforePause);
+        } else if (gameMode === 'timed') {
+            updateTimerDisplay(remainingTimedModeTime, TIMED_MODE_DURATION);
+        }
+    });
+
+	confirmEndGameYesBtn.addEventListener('click', () => {
+        gameInterface.style.display = 'flex';
+        isGamePaused = false; 
+        handleGameOver();
+    });
+
+    confirmEndGameNoBtn.addEventListener('click', () => {
+        confirmEndGameModal.style.display = 'none';
+        gameInterface.style.display = 'flex';
+        isGamePaused = false;
+        // Do not set allowInput = true here, let processGameTurn handle it
+        // OR only set it if the game is truly idle
+        if (!isFalling) {
+            allowInput = true;
+        }
+        
+        lastFrameTime = performance.now(); 
+        if (!gameLoopRequest) {
+            gameLoopRequest = requestAnimationFrame(gameLoop);
+        }
+
+        if (gameMode === 'pressure') {
+            pressureTurnEffectiveTimeLimit = pressureTimerRemainingBeforePause;
+            pressureTurnStartTime = Date.now(); 
+
+            if (pressureTurnEffectiveTimeLimit > 0) {
+                if (pressureTimerInterval) clearTimeout(pressureTimerInterval);
+                pressureTimerInterval = setTimeout(() => {
+                    if (allowInput && !isGamePaused && gameMode === 'pressure' && !isFalling) {
+                         autoPlacePressureBlock();
+                    }
+                }, pressureTurnEffectiveTimeLimit);
+
+                if (pressureAnimationRequestFrameId) cancelAnimationFrame(pressureAnimationRequestFrameId);
+                pressureAnimationRequestFrameId = requestAnimationFrame(updatePressureBar);
+            } else {
+                if (allowInput && !isGamePaused && gameMode === 'pressure' && !isFalling) {
+                     autoPlacePressureBlock();
+                }
+            }
+            updateTimerDisplay(pressureTurnEffectiveTimeLimit, pressureTurnEffectiveTimeLimit);
+        } else if (gameMode === 'timed') {
+            updateTimerDisplay(remainingTimedModeTime, TIMED_MODE_DURATION);
+        }
+    });
+
+    savePairBtn.addEventListener('click', () => {
+        if (!allowInput || isFalling || isGamePaused) return;
+        if (!savedPair || !savedPair.primary) {
+            savedPair = { ...currentPair };
+            generateNewPair();
+        } else {
+            const tempCurrentPair = { ...currentPair };
+            currentPair = { ...savedPair };
+            savedPair = tempCurrentPair;
+        }
+        updatePreviewDisplays();
+        updateSavedPairDisplay();
+    });
+
+
+    // ---
+    // Main Game Loop
+    // ---
+    
+    function gameLoop(timestamp) {
+        if (!lastFrameTime) lastFrameTime = timestamp;
+        const deltaTime = (timestamp - lastFrameTime) / 1000.0;
+        lastFrameTime = timestamp;
+
+        if (!isGamePaused) {
+            update(deltaTime);
+            render();
+        }
+        
+        if (gameLoopRequest) {
+            gameLoopRequest = requestAnimationFrame(gameLoop);
+        }
+    }
+    
+    function update(deltaTime) {
+        // We only update animations here.
+        // All game logic (falling, clearing) is now handled by the
+        // async processGameTurn() function, which is event-driven.
+        updateFallingBlocks(deltaTime);
+        updateClearingBlocks(deltaTime);
+    }
+    
+    function updateFallingBlocks(deltaTime) {
+        if (fallingBlocks.length === 0) {
+            if (activeFallPromiseResolver) {
+                activeFallPromiseResolver();
+                activeFallPromiseResolver = null;
+            }
+            return;
+        }
+
+        for (let i = fallingBlocks.length - 1; i >= 0; i--) {
+            const block = fallingBlocks[i];
+            
+            block.y += blockFallSpeedPPS * deltaTime;
+            
+            if (block.y >= block.targetY) {
+                block.y = block.targetY; 
+                block.blockData.isFalling = false; 
+                fallingBlocks.splice(i, 1); 
+            }
+        }
+    }
+    
+    function updateClearingBlocks(deltaTime) {
+        if (clearingBlocks.length === 0) {
+            if (activeClearPromiseResolver) {
+                activeClearPromiseResolver();
+                activeClearPromiseResolver = null;
+            }
+            return;
+        }
+        
+        for (let i = clearingBlocks.length - 1; i >= 0; i--) {
+            const block = clearingBlocks[i];
+            block.animTimer -= deltaTime; 
+            
+            if (block.animTimer <= 0) {
+                clearingBlocks.splice(i, 1); 
+            }
+        }
+    }
+
+    // ---
+    // Canvas Rendering Functions
+    // ---
+
+    function render() {
+        if (!ctx) return; 
+        
+        ctx.clearRect(0, 0, playfieldCanvas.width, playfieldCanvas.height);
+        drawPlayfieldGrid();
+        drawSettledBlocks();
+        drawFallingBlocks();
+        drawClearingBlocks();
+        drawPlacementPreview();
+    }
+    
+    function drawPlayfieldGrid() {
+        ctx.fillStyle = '#e0e0e0';
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                const x = gridToPixel(c);
+                const y = gridToPixel(r);
+                ctx.fillRect(x, y, cellSize, cellSize);
+            }
+        }
+    }
+    
+    function drawSettledBlocks() {
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                const blockData = playfield[r][c];
+                // Only draw if it's not null AND not currently in the fallingBlocks array
+                // The check for blockData.isFalling is technically redundant if fallingBlocks
+                // is managed perfectly, but it's good defense.
+                if (blockData && !blockData.isFalling) {
+                    const x = gridToPixel(c);
+                    const y = gridToPixel(r);
+                    drawBlock(ctx, x, y, cellSize, blockData.colorName, blockData.isPrimary, 1.0);
+                }
+            }
+        }
+    }
+    
+    function drawFallingBlocks() {
+        for (const block of fallingBlocks) {
+            drawBlock(ctx, block.x, block.y, cellSize, block.colorName, block.isPrimary, 1.0);
+        }
+    }
+    
+    function drawClearingBlocks() {
+        const duration = CLEAR_ANIMATION_DURATION / 1000.0;
+
+        for (const block of clearingBlocks) {
+            const progress = Math.max(0, block.animTimer / duration);
+            const animPercent = 1.0 - progress; 
+
+            let scale, alpha;
+
+            if (animPercent < 0.5) {
+                const p = animPercent / 0.5; 
+                scale = 1.0 + (p * 0.2); // 1.0 -> 1.2
+                alpha = 1.0 - (p * 0.5); // 1.0 -> 0.5
+            } else {
+                const p = (animPercent - 0.5) / 0.5;
+                scale = 1.2 - (p * 1.2); // 1.2 -> 0.0
+                alpha = 0.5 - (p * 0.5); // 0.5 -> 0.0
+            }
+            
+            scale = Math.max(0, scale);
+            alpha = Math.max(0, alpha);
+            
+            const newSize = cellSize * scale;
+            const x = block.x - (newSize - cellSize) / 2; 
+            const y = block.y - (newSize - cellSize) / 2;
+            
+            drawBlock(ctx, x, y, newSize, block.colorName, block.isPrimary, alpha);
+        }
+    }
+
+    function drawPlacementPreview() {
+        ctx.globalAlpha = 0.5; 
+        if (previewPrimaryPos && isValidCell(previewPrimaryPos.r, previewPrimaryPos.c)) {
+            const x = gridToPixel(previewPrimaryPos.c);
+            const y = gridToPixel(previewPrimaryPos.r);
+            drawBlock(ctx, x, y, cellSize, currentPair.primary, true, 0.5);
+        }
+        if (previewSecondaryPos && isValidCell(previewSecondaryPos.r, previewSecondaryPos.c)) {
+            const x = gridToPixel(previewSecondaryPos.c);
+            const y = gridToPixel(previewSecondaryPos.r);
+            drawBlock(ctx, x, y, cellSize, currentPair.secondary, false, 0.5);
+        }
+        ctx.globalAlpha = 1.0; 
+    }
+
+    function drawBlock(ctx, x, y, size, colorName, isPrimary, alpha = 1.0) {
+        const colorHex = COLORS[colorName] || '#bdbdbd'; 
+        const radius = size * 0.2; 
+        
+        ctx.save(); 
+        ctx.globalAlpha = alpha;
+        
+        // 1. Draw Outset Shadow
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+        ctx.shadowBlur = 5;
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 2;
+
+        // 2. Draw Main Block Body
+        ctx.fillStyle = colorHex;
+        ctx.beginPath();
+        ctx.roundRect(x, y, size, size, radius);
+        ctx.fill();
+        
+        ctx.shadowColor = 'transparent';
+        
+        // 3. Draw Inset Shadows/Highlights
+        ctx.beginPath();
+        ctx.roundRect(x, y, size, size, radius);
+        ctx.clip(); 
+        
+        let highlightGradient = ctx.createLinearGradient(x, y, x, y + size);
+        highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+        highlightGradient.addColorStop(0.1, 'rgba(255, 255, 255, 0.1)');
+		highlightGradient.addColorStop(0.2, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = highlightGradient;
+        ctx.fillRect(x, y, size, size);
+		
+		let highlightGradienth = ctx.createLinearGradient(x, y, x+ size, y );
+        highlightGradienth.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+        highlightGradienth.addColorStop(0.1, 'rgba(255, 255, 255, 0.1)');
+		highlightGradienth.addColorStop(0.2, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = highlightGradienth;
+        ctx.fillRect(x, y, size, size);
+        
+        let insetShadowGradient = ctx.createLinearGradient(x, y, x, y + size);
+        insetShadowGradient.addColorStop(0.8, 'rgba(0, 0, 0, 0.0)');
+        insetShadowGradient.addColorStop(1.0, 'rgba(0, 0, 0, 0.1)');
+        ctx.fillStyle = insetShadowGradient;
+        ctx.fillRect(x, y, size, size);
+		
+		let insetShadowGradienth = ctx.createLinearGradient(x, y, x+ size, y );
+        insetShadowGradienth.addColorStop(0.8, 'rgba(0, 0, 0, 0.0)');
+        insetShadowGradienth.addColorStop(1.0, 'rgba(0, 0, 0, 0.1)');
+        ctx.fillStyle = insetShadowGradienth;
+        ctx.fillRect(x, y, size, size);
+
+        ctx.restore();
+        
+        ctx.save();
+        ctx.globalAlpha = alpha;
+
+        // 4. Draw '×' Symbol
+        if (isPrimary) {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.font = `bold ${size * 0.6}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('×', x + size / 2, y + size / 2 + (size * 0.05));
+        }
+        
+        ctx.restore(); 
+    }
+
+    // ---
+    // End of Canvas Functions
+    // ---
+
+    loadLanguage();
+    modeSelectionModal.style.display = 'flex';
+    savePairBtn.style.display = 'none';
+    allowInput = false;
+});
+</script>
+</body>
+</html>
