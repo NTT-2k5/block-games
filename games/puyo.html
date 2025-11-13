@@ -684,8 +684,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const COLOR_NAMES = Object.keys(COLORS); 
     
     const BLOCKS_PER_COLOR_IN_BAG = 20;
-    const FALL_SPEED_MS_PER_ROW = 50; // Original value
-    const CLEAR_ANIMATION_DURATION = 600; // Match old CSS
+    const FALL_SPEED = 50; 
+    const CLEAR_ANIMATION = 600; 
     const TIMED_MODE_DURATION = 100 * 1000;
     const PRESSURE_MODE_INITIAL_TIME = 10 * 1000;
     const PRESSURE_MODE_DECREMENT = 80;
@@ -734,6 +734,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let startCell = null;
     let currentLanguage = 'en';
     let blockBag = [];
+	let blockRenderCache = {};
 
     // Pause state variables
     let isGamePaused = false;
@@ -1135,7 +1136,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const cellSizeBasedOnHeight = Math.floor(availableHeightForPlayfield / ROWS);
         cellSize = Math.max(10, Math.min(cellSizeBasedOnWidth, cellSizeBasedOnHeight));
         if (cellSize < 10) cellSize = 10;
-        
+        generateBlockCache(cellSize);
         document.documentElement.style.setProperty('--cell-size', `${cellSize}px`);
 
         // Update preview block sizes (unchanged)
@@ -1165,7 +1166,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Recalculate block fall speed
         const pixelsPerRow = cellSize + GRID_GAP;
-        const secondsPerRow = FALL_SPEED_MS_PER_ROW / 1000.0;
+        const secondsPerRow = FALL_SPEED / 1000.0;
         blockFallSpeedPPS = pixelsPerRow / secondsPerRow;
     }
 
@@ -1432,7 +1433,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fell = await applyGravity_Canvas();
             if (fell) {
                 // This small extra pause mimics the original DOM version's feel
-                await new Promise(resolve => setTimeout(resolve, FALL_SPEED_MS_PER_ROW * 1.5)); 
+                await new Promise(resolve => setTimeout(resolve, FALL_SPEED * 1.5)); 
             }
         } while (fell);
     
@@ -1457,7 +1458,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     fell = await applyGravity_Canvas();
                     if (fell) {
                         // Add the small extra pause *after* gravity finishes
-                        await new Promise(resolve => setTimeout(resolve, FALL_SPEED_MS_PER_ROW * 1.5));
+                        await new Promise(resolve => setTimeout(resolve, FALL_SPEED * 1.5));
                     }
                 } while (fell);
             }
@@ -1568,7 +1569,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         y: gridToPixel(r),
                         colorName: blockData.colorName,
                         isPrimary: blockData.isPrimary,
-                        animTimer: CLEAR_ANIMATION_DURATION / 1000.0 
+                        animTimer: CLEAR_ANIMATION / 1000.0 
                     });
                     playfield[r][c] = null; // Set to null *before* the animation
                 }
@@ -1994,7 +1995,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function drawClearingBlocks() {
-        const duration = CLEAR_ANIMATION_DURATION / 1000.0;
+        const duration = CLEAR_ANIMATION / 1000.0;
 
         for (const block of clearingBlocks) {
             const progress = Math.max(0, block.animTimer / duration);
@@ -2038,12 +2039,12 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.globalAlpha = 1.0; 
     }
 
-    function drawBlock(ctx, x, y, size, colorName, isPrimary, alpha = 1.0) {
+    function renderBlockToContext(ctx, x, y, size, colorName, isPrimary) {
         const colorHex = COLORS[colorName] || '#bdbdbd'; 
         const radius = size * 0.2; 
         
         ctx.save(); 
-        ctx.globalAlpha = alpha;
+        // Alpha is no longer handled here
         
         // 1. Draw Outset Shadow
         ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
@@ -2065,16 +2066,16 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.clip(); 
         
         let highlightGradient = ctx.createLinearGradient(x, y, x, y + size);
-        highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
-        highlightGradient.addColorStop(0.1, 'rgba(255, 255, 255, 0.1)');
-		highlightGradient.addColorStop(0.2, 'rgba(255, 255, 255, 0)');
+        highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.35)');
+        highlightGradient.addColorStop(0.12, 'rgba(255, 255, 255, 0.1)');
+		highlightGradient.addColorStop(0.2, 'rgba(255, 255, 255, 0.05)');
         ctx.fillStyle = highlightGradient;
         ctx.fillRect(x, y, size, size);
 		
 		let highlightGradienth = ctx.createLinearGradient(x, y, x+ size, y );
-        highlightGradienth.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
-        highlightGradienth.addColorStop(0.1, 'rgba(255, 255, 255, 0.1)');
-		highlightGradienth.addColorStop(0.2, 'rgba(255, 255, 255, 0)');
+        highlightGradienth.addColorStop(0, 'rgba(255, 255, 255, 0.35)');
+        highlightGradienth.addColorStop(0.12, 'rgba(255, 255, 255, 0.1)');
+		highlightGradienth.addColorStop(0.2, 'rgba(255, 255, 255, 0.05)');
         ctx.fillStyle = highlightGradienth;
         ctx.fillRect(x, y, size, size);
         
@@ -2090,10 +2091,10 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.fillStyle = insetShadowGradienth;
         ctx.fillRect(x, y, size, size);
 
-        ctx.restore();
+        ctx.restore(); // Restores from clip()
         
         ctx.save();
-        ctx.globalAlpha = alpha;
+        // Alpha is no longer handled here
 
         // 4. Draw '×' Symbol
         if (isPrimary) {
@@ -2105,6 +2106,73 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         ctx.restore(); 
+    }
+	
+	/**
+     * Pre-renders all block variations onto off-screen canvases
+     * and stores them in the blockRenderCache.
+     */
+    function generateBlockCache(size) {
+        blockRenderCache = {}; // Clear old cache
+        
+        // Add 'fallback' to handle the '#bdbdbd' color
+        const colorsToCache = [...COLOR_NAMES, 'fallback'];
+        const primaryStates = [true, false];
+        const shadowPadding = 8; // Safe pixel buffer for outset shadows
+
+        for (const color of colorsToCache) {
+            for (const isPrimary of primaryStates) {
+                const key = `${color}-${isPrimary}`;
+                
+                // Create a new canvas for this block
+                const offScreenCanvas = document.createElement('canvas');
+                // Size it to hold the block + its shadow
+                offScreenCanvas.width = size + shadowPadding;
+                offScreenCanvas.height = size + shadowPadding;
+                const offScreenCtx = offScreenCanvas.getContext('2d');
+
+                // Draw the block at (0, 0) in its personal canvas
+                // The master renderer function will draw the block and its shadow
+                renderBlockToContext(offScreenCtx, 0, 0, size, color, isPrimary);
+
+                // Store the entire canvas (which is an ImageBitmapSource)
+                blockRenderCache[key] = offScreenCanvas;
+            }
+        }
+    }
+	
+	/**
+     * NEW "Smart" drawBlock function.
+     * It tries to use the pre-rendered cache for speed.
+     * If the requested size doesn't match the cached size (e.g., during
+     * the clearing animation), it falls back to rendering live.
+     */
+    function drawBlock(ctx, x, y, size, colorName, isPrimary, alpha = 1.0) {
+        
+        // --- The "Smart" Part ---
+        // Check if the size requested is the same as our global, cached cell size
+        if (size === cellSize) {
+            // --- Path 1: Use the Fast Cache ---
+            const keyColor = COLORS[colorName] ? colorName : 'fallback';
+            const key = `${keyColor}-${isPrimary}`;
+            const cachedBlock = blockRenderCache[key];
+
+            if (cachedBlock) {
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                ctx.drawImage(cachedBlock, x, y);
+                ctx.restore();
+                return; // We're done!
+            }
+        }
+
+        // --- Path 2: Fallback for non-standard sizes (e.g., clearing anim) ---
+        // If we're here, it's because size !== cellSize or the cache missed.
+        // We'll render it live using the master renderer, applying alpha manually.
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        renderBlockToContext(ctx, x, y, size, colorName, isPrimary);
+        ctx.restore();
     }
 
     // ---
