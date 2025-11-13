@@ -3,8 +3,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Block-based HTML Games</title>
-	<style>
-		:root {
+    <style>
+        :root {
             --bg-color: #f0f2f5;
             --text-color: #333;
             --subtext-color: #3777c7;
@@ -14,24 +14,52 @@
             height: 100%;
             margin: 0;
             font-family: Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
             color: var(--text-color);
+            position: relative; /* For pseudo-element positioning */
         }
-		body {
+
+        body {
             display: flex;
             justify-content: center;
             align-items: center;
-            box-sizing: border-box;flex-direction: column;
-        }
-		.title {
+            box-sizing: border-box;
+            flex-direction: column;
+            background-color: var(--bg-color);
+            background-image: url('honahona.jpg'); /* Replace with your image path */
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
             color: var(--text-color);
-			margin-top: 0;
-			margin-bottom: 25px;
-			text-align: center;
         }
-		h1{margin:0;line-height:1.25;}
-		.game-card {
-            display: flex;flex-direction: row;
+
+        /* The overlay layer */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.6); /* White, with transparency */
+            //backdrop-filter: blur(10px); /* Apply blur effect */
+            z-index: -1; /* Ensure the overlay is behind the content */
+        }
+
+        .title {
+            color: var(--text-color);
+            margin-top: 0;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        h1 {
+            margin: 0;
+            line-height: 1.25;
+        }
+
+        .game-card {
+            display: flex;
+            flex-direction: row;
             background-color: #f0f0f0;
             border: 3px solid #ddd;
             border-radius: 10px;
@@ -39,63 +67,68 @@
             text-decoration: none;
             overflow: hidden;
         }
-		.game-card:hover {
+
+        .game-card:hover {
             border-color: #aaa;
         }
-		.game-card h2 {
+
+        .game-card h2 {
             margin: 0 0 0px 0;
             font-size: 1.2em;
         }
-		.game-list {
-            display: flex;flex-direction: column;
-            /* One column by default */
-			
+
+        .game-list {
+            display: flex;
+            flex-direction: column;
             text-align: center;
             gap: 20px;
         }
-		.game-icon-container {
-			width: 60px;
+
+        .game-icon-container {
+            width: 60px;
             height: 60px;
             display: flex;
             justify-content: center;
             align-items: center;
         }
-		.game-text-container {
-			width: 130px;
+
+        .game-text-container {
+            width: 130px;
             height: 60px;
             display: flex;
             justify-content: center;
             align-items: center;
-            <!-- color: var(--subtext-color); -->
         }
-		.game-icon {
+
+        .game-icon {
             font-size: 2.5em;
         }
-	</style>
+    </style>
 </head>
 <body>
 <div class="title">
-	<h1>Block-based</br>HTML Games</h1></div>
-	<div class="game-list">
-            <!-- Puyo -->
-            <a href="./games/puyo.html" class="game-card" style="background-color: #e6f7ea;">
-                <div class="game-icon-container" >
-                    <span class="game-icon">🔴</span>
-                </div>
-				<div class="game-text-container" style="color: #19a919">
-					<h2>Falling Tiles</br>Matching</h2>
-				</div>
-            </a>
-
-            <!-- Columns -->
-            <a href="./games/columns.html" class="game-card" style="background-color: #e6f2ff;">
-                <div class="game-icon-container" >
-                    <span class="game-icon">💎</span>
-                </div>
-				<div class="game-text-container" style="color: #3777c7">
-					<h2>Columns</br>Matching</h2>
-				</div>
-            </a>
+    <h1>Block-based</br>HTML Games</h1>
+</div>
+<div class="game-list">
+    <!-- Puyo -->
+    <a href="./games/puyo.html" class="game-card" style="background-color: #e6f7ea;">
+        <div class="game-icon-container">
+            <span class="game-icon">🔴</span>
         </div>
+        <div class="game-text-container" style="color: #19a919">
+            <h2>Falling Tiles</br>Matching</h2>
+        </div>
+    </a>
+
+    <!-- Columns -->
+    <a href="./games/columns.html" class="game-card" style="background-color: #e6f2ff;">
+        <div class="game-icon-container">
+            <span class="game-icon">💎</span>
+        </div>
+        <div class="game-text-container" style="color: #3777c7">
+            <h2>Columns</br>Matching</h2>
+        </div>
+    </a>
+</div>
 </body>
 </html>
