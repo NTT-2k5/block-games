@@ -536,8 +536,8 @@ body {
                     <div class="pair-container current-pair-container">
                         <div class="pair-label" id="now-label"><b>NOW</b></div>
                         <div id="current-pair">
-                            <div class="block secondary-block" id="current-secondary"></div>
                             <div class="block primary-block" id="current-primary"></div>
+                            <div class="block secondary-block" id="current-secondary"></div>
                         </div>
                     </div>
                     <div class="line"></div>
@@ -545,12 +545,12 @@ body {
                     <div class="pair-container next-pair-container">
                         <div class="pair-label" id="next-label">Next</div>
                         <div id="next-pair">
-                            <div class="block secondary-block" id="next-secondary"></div>
                             <div class="block primary-block" id="next-primary"></div>
+                            <div class="block secondary-block" id="next-secondary"></div>
 							<div class="next2-pair-container">
                             <div id="next2-pair">
-                                <div class="block secondary-block" id="next2-secondary"></div>
                                 <div class="block primary-block" id="next2-primary"></div>
+                                <div class="block secondary-block" id="next2-secondary"></div>
                             </div>
                         </div>
                         </div>
@@ -559,8 +559,8 @@ body {
                     <button id="save-pair-btn" style="display: none;">
                         <span class="save-btn-text" id="save-btn-text-label">Save</span>
                         <div class="save-btn-blocks-container">
-                            <div id="saved-secondary-preview" class="block"></div>
                             <div id="saved-primary-preview" class="block"></div>
+                            <div id="saved-secondary-preview" class="block"></div>
                         </div>
                     </button>
                     </div>
@@ -685,7 +685,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const BLOCKS_PER_COLOR_IN_BAG = 20;
     const FALL_SPEED = 50; 
-    const CLEAR_ANIMATION = 600; 
+    const CLEAR_ANIMATION = 1000; 
     const TIMED_MODE_DURATION = 100 * 1000;
     const PRESSURE_MODE_INITIAL_TIME = 10 * 1000;
     const PRESSURE_MODE_DECREMENT = 80;
@@ -1982,7 +1982,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (blockData && !blockData.isFalling) {
                     const x = gridToPixel(c);
                     const y = gridToPixel(r);
-                    drawBlock(ctx, x, y, cellSize, blockData.colorName, blockData.isPrimary, 1.0);
+                    //drawBlock(ctx, x, y, cellSize, blockData.colorName, blockData.isPrimary, 1.0);
+					drawBlock(ctx, x, y, cellSize, blockData.colorName, false, 1.0);
                 }
             }
         }
@@ -1990,7 +1991,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function drawFallingBlocks() {
         for (const block of fallingBlocks) {
-            drawBlock(ctx, block.x, block.y, cellSize, block.colorName, block.isPrimary, 1.0);
+            //drawBlock(ctx, block.x, block.y, cellSize, block.colorName, block.isPrimary, 1.0);
+			drawBlock(ctx, block.x, block.y, cellSize, block.colorName, false, 1.0);
         }
     }
     
@@ -2002,16 +2004,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const animPercent = 1.0 - progress; 
 
             let scale, alpha;
-
-            if (animPercent < 0.5) {
-                const p = animPercent / 0.5; 
-                scale = 1.0 + (p * 0.2); // 1.0 -> 1.2
-                alpha = 1.0 - (p * 0.5); // 1.0 -> 0.5
-            } else {
-                const p = (animPercent - 0.5) / 0.5;
-                scale = 1.2 - (p * 1.2); // 1.2 -> 0.0
-                alpha = 0.5 - (p * 0.5); // 0.5 -> 0.0
-            }
+			
+			if (animPercent<=0.3){
+				scale=1.0;
+				alpha=((Math.floor(animPercent*25)%2)==0)?1.0:0.75;
+			} else if (animPercent < 0.7) {
+				const p = (animPercent-0.3) / 0.4; 
+				scale = 1.0 + (p * 0.2); // 1.0 -> 1.2
+				alpha = 1.0 - (p * 0.5); // 1.0 -> 0.5
+			} else {
+				const p = (animPercent - 0.7) / 0.3;
+				scale = 1.2 - (p * 1.2); // 1.2 -> 0.0
+				alpha = 0.5 - (p * 0.5); // 0.5 -> 0.0
+			}
+			
             
             scale = Math.max(0, scale);
             alpha = Math.max(0, alpha);
@@ -2020,7 +2026,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const x = block.x - (newSize - cellSize) / 2; 
             const y = block.y - (newSize - cellSize) / 2;
             
-            drawBlock(ctx, x, y, newSize, block.colorName, block.isPrimary, alpha);
+            //drawBlock(ctx, x, y, newSize, block.colorName, block.isPrimary, alpha);
+			drawBlock(ctx, x, y, newSize, block.colorName, false, alpha);
         }
     }
 
