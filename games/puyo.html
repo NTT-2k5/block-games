@@ -122,21 +122,21 @@ body {
     background-color: #616161 !important; /* Darker grey */
 }
 
-.language-selector-container {
-    margin-top: 15px;
+.language-selector-container, .difficulty-selector-container {
+    margin-top: 10px;
     margin-bottom: 5px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.language-selector-container label {
+.language-selector-container label, .difficulty-selector-container label {
     margin-right: 8px;
     font-size: 1em;
     color: #555;
 }
 
-.language-selector-container select {
+.language-selector-container select, .difficulty-selector-container select {
     padding: 5px 8px;
     border-radius: 4px;
     border: 1px solid #ccc;
@@ -225,7 +225,6 @@ body {
 }
 
 .pair-container {
-    margin-bottom: clamp(10px, 3vh, 20px); /* Adjusted margin */
     text-align: center;
 }
 
@@ -241,7 +240,11 @@ body {
     align-items: center;
 }
 
+.pair-container.current-pair-container {
+    margin-bottom: 15px;
+}
 .pair-container.next-pair-container {
+    margin-bottom: 5px; 
 }
 
 #next-label {
@@ -257,27 +260,7 @@ body {
     align-items: center;
 }
 
-#next-pair > .block {
-    position: relative;
-    z-index: 2;
-}
 
-.next2-pair-container {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    width: 100%;
-    opacity: 0.5;
-    z-index: 1;
-    display: flex;
-    justify-content: center;
-}
-
-#next2-pair {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
 
 #pairs-preview-area {
     display: flex;
@@ -321,45 +304,6 @@ body {
     align-items: center;
 }
 
-#save-pair-btn .save-btn-blocks-container .block {
-    margin: 1px 0;
-}
-
-
-/*
- * This .block style is now only used for the PREVIEW blocks
- * outside the canvas (Next, Save, etc.).
-*/
-.block {
-    margin: 1px 0;
-    border-radius: clamp(4px, 1vw, 8px);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-weight: bold;
-    color: white;
-    position: relative;
-    box-shadow:
-        inset 2px 2px 3px rgba(255, 255, 255, 0.3),
-        inset -2px -2px 3px rgba(0, 0, 0, 0.2),
-        2px 2px 5px rgba(0, 0, 0, 0.3);
-}
-
-
-.primary-block::after {
-    content: '×';
-    font-size: 1.5em;
-    color: rgba(255, 255, 255, 0.7);
-    position: absolute;
-}
-
-/* Block Colors */
-.block.green { background-color: #4CAF50; }
-.block.blue { background-color: #2196F3; }
-.block.red { background-color: #F44336; }
-.block.purple { background-color: #9C27B0; }
-.block.orange { background-color: #FF9800; }
-
 #playfield-container {
     flex-grow: 1;
     display: flex;
@@ -370,9 +314,6 @@ body {
     position: relative;
 }
 
-/*
- * The #playfield DIV is replaced by a <canvas> element.
-*/
 #playfield-canvas {
     background-color: #d3d3d3;
     border: 2px solid #cccccc;
@@ -476,6 +417,15 @@ body {
                 <button id="timed-mode-btn">Timed Mode</button>
                 <button id="pressure-mode-btn">Pressure Mode</button>
                 <button id="how-to-play-btn">How to Play</button>
+                
+                <div class="difficulty-selector-container">
+                    <label for="difficulty-selector" id="difficulty-label">Difficulty:</label>
+                    <select id="difficulty-selector">
+                        <option value="normal" selected>Normal (4 colors)</option>
+                        <option value="hard">Hard (5 colors)</option>
+                    </select>
+                </div>
+
                 <div class="language-selector-container">
                     <label for="language-selector" id="language-label">Language:</label>
                     <select id="language-selector">
@@ -533,37 +483,29 @@ body {
 
             <div id="game-display-area">
                 <div id="pairs-preview-area">
-                    <div class="pair-container current-pair-container">
-                        <div class="pair-label" id="now-label"><b>NOW</b></div>
-                        <div id="current-pair">
-                            <div class="block primary-block" id="current-primary"></div>
-                            <div class="block secondary-block" id="current-secondary"></div>
-                        </div>
-                    </div>
-                    <div class="line"></div>
+    <div class="pair-container current-pair-container">
+        <div class="pair-label" id="now-label"><b>NOW</b></div>
+        <div id="current-pair">
+            <canvas id="current-pair-canvas"></canvas>
+        </div>
+    </div>
+    
+    <div class="line"></div>
 
-                    <div class="pair-container next-pair-container">
-                        <div class="pair-label" id="next-label">Next</div>
-                        <div id="next-pair">
-                            <div class="block primary-block" id="next-primary"></div>
-                            <div class="block secondary-block" id="next-secondary"></div>
-							<div class="next2-pair-container">
-                            <div id="next2-pair">
-                                <div class="block primary-block" id="next2-primary"></div>
-                                <div class="block secondary-block" id="next2-secondary"></div>
-                            </div>
-                        </div>
-                        </div>
+    <div class="pair-container next-pair-container">
+        <div class="pair-label" id="next-label">Next</div>
+        <div id="next-pair">
+            <canvas id="next-pair-canvas"></canvas>
+        </div>
+    </div>
 
-                    </div>
-                    <button id="save-pair-btn" style="display: none;">
-                        <span class="save-btn-text" id="save-btn-text-label">Save</span>
-                        <div class="save-btn-blocks-container">
-                            <div id="saved-primary-preview" class="block"></div>
-                            <div id="saved-secondary-preview" class="block"></div>
-                        </div>
-                    </button>
-                    </div>
+    <button id="save-pair-btn" style="display: none;">
+        <span class="save-btn-text" id="save-btn-text-label">Save</span>
+        <div class="save-btn-blocks-container">
+            <canvas id="saved-pair-canvas"></canvas>
+        </div>
+    </button>
+</div>
                 <div id="playfield-container">
                     <canvas id="playfield-canvas"></canvas>
                     <div id="dynamic-combo-display"></div>
@@ -614,16 +556,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const timerStatDisplay = document.getElementById('timer-stat');
     const timeLeftDisplay = document.getElementById('time-left');
 
-    const currentPrimaryDisplay = document.getElementById('current-primary');
-    const currentSecondaryDisplay = document.getElementById('current-secondary');
-    const nextPrimaryDisplay = document.getElementById('next-primary');
-    const nextSecondaryDisplay = document.getElementById('next-secondary');
-    const next2PrimaryDisplay = document.getElementById('next2-primary');
-    const next2SecondaryDisplay = document.getElementById('next2-secondary');
+   const currentCanvas = document.getElementById('current-pair-canvas');
+const currentCtx = currentCanvas.getContext('2d');
+
+const nextCanvas = document.getElementById('next-pair-canvas');
+const nextCtx = nextCanvas.getContext('2d');
+
+const savedCanvas = document.getElementById('saved-pair-canvas');
+const savedCtx = savedCanvas.getContext('2d');
 
 	const savePairBtn = document.getElementById('save-pair-btn');
-    const savedPrimaryDisplay = document.getElementById('saved-primary-preview');
-    const savedSecondaryDisplay = document.getElementById('saved-secondary-preview');
+	const previewCanvasPadding = 6;
+// Add these global variables near your other state variables to share calculations
+let nextPairOffset = { x: 0, y: 0 };
+let nextCanvasSize = { w: 0, h: 0 };
 
     // Get the canvas element and its 2D rendering context
     const playfieldCanvas = document.getElementById('playfield-canvas');
@@ -640,9 +586,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const dynamicComboDisplayElement = document.getElementById('dynamic-combo-display');
     let dynamicComboTimeout = null;
 
-    // Language Elements (Unchanged)
+    // Language & Difficulty Elements
     const languageSelector = document.getElementById('language-selector');
     const languageLabel = document.getElementById('language-label');
+    
+    const difficultySelector = document.getElementById('difficulty-selector');
+    const difficultyLabel = document.getElementById('difficulty-label');
+
     const pageTitleElement = document.getElementById('page-title');
     const mainMenuTitle = document.getElementById('main-menu-title');
     const htpTitle = document.getElementById('htp-title');
@@ -678,10 +628,14 @@ document.addEventListener('DOMContentLoaded', () => {
         'green': '#4CAF50',
         'blue': '#2196F3',
         'red': '#F44336',
-        'purple': '#9C27B0',
-        'orange': '#FF9800'
+        'orange': '#FF9800',
+        'purple': '#9C27B0'
     };
-    const COLOR_NAMES = Object.keys(COLORS); 
+    
+    const COLOR_NAMES_NORMAL = ['green', 'blue', 'red', 'orange'];
+    const COLOR_NAMES_HARD = ['green', 'blue', 'red', 'orange', 'purple'];
+    let activeColorNames = COLOR_NAMES_NORMAL; // Default to normal
+    const ALL_COLOR_NAMES = Object.keys(COLORS);
     
     const BLOCKS_PER_COLOR_IN_BAG = 20;
     const FALL_SPEED = 50; 
@@ -697,6 +651,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Game State Variables
     let gameMode = '';
+    let currentDifficulty = 'normal'; // 'normal' or 'hard'
     let score = 0;
     let currentHighScore = 0;
     let combo = 0;
@@ -751,6 +706,9 @@ document.addEventListener('DOMContentLoaded', () => {
             pressureMode: "Pressure Mode",
             howToPlay: "How to Play",
             languageSelectorLabel: "Language:",
+            difficultyLabel: "Difficulty:",
+            diffNormal: "Normal (4 colors)",
+            diffHard: "Hard (5 colors)",
 
             howToPlayTitle: "How to Play",
             htpObjectiveLabelStrong: "<strong>Objective:</strong>",
@@ -797,6 +755,9 @@ document.addEventListener('DOMContentLoaded', () => {
             pressureMode: "Chế độ Áp lực",
             howToPlay: "Hướng dẫn chơi",
             languageSelectorLabel: "Ngôn ngữ:",
+            difficultyLabel: "Độ khó:",
+            diffNormal: "Thường (4 màu)",
+            diffHard: "Khó (5 màu)",
 
             howToPlayTitle: "Hướng dẫn chơi",
             htpObjectiveLabelStrong: "<strong>Mục tiêu:</strong>",
@@ -850,7 +811,15 @@ document.addEventListener('DOMContentLoaded', () => {
         timedModeBtn.textContent = t.timedMode;
         pressureModeBtn.textContent = t.pressureMode;
         howToPlayBtn.textContent = t.howToPlay;
+        
         languageLabel.textContent = t.languageSelectorLabel;
+        difficultyLabel.textContent = t.difficultyLabel;
+        
+        // Update difficulty options text while keeping value
+        const diffSelect = document.getElementById('difficulty-selector');
+        diffSelect.options[0].text = t.diffNormal;
+        diffSelect.options[1].text = t.diffHard;
+
 
         htpTitle.textContent = t.howToPlayTitle;
         htpObjectiveLabelStrong.innerHTML = t.htpObjectiveLabelStrong;
@@ -904,11 +873,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     function getHighScore(mode) {
-        return parseInt(localStorage.getItem(`highscore_${mode}`) || '0', 10);
+        // High scores are now dependent on difficulty
+        const key = `highscore_${mode}_${currentDifficulty}`;
+        return parseInt(localStorage.getItem(key) || '0', 10);
     }
 
     function setHighScore(mode, newScore) {
-        localStorage.setItem(`highscore_${mode}`, newScore.toString());
+        const key = `highscore_${mode}_${currentDifficulty}`;
+        localStorage.setItem(key, newScore.toString());
     }
 
     function shuffleArray(array) {
@@ -919,7 +891,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function generateBlockBag() {
-        console.log("Generating new block bag...");
+        console.log("Generating new block bag for difficulty:", currentDifficulty);
         let tempBag = [];
         let attempts = 0;
         const MAX_ATTEMPTS = 100;
@@ -927,7 +899,8 @@ document.addEventListener('DOMContentLoaded', () => {
         while (attempts < MAX_ATTEMPTS) {
             attempts++;
             tempBag = [];
-            for (const color of COLOR_NAMES) {
+            // Use activeColorNames determined by difficulty
+            for (const color of activeColorNames) {
                 for (let i = 0; i < BLOCKS_PER_COLOR_IN_BAG; i++) {
                     tempBag.push(color);
                 }
@@ -961,7 +934,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const key = p1 <= p2 ? `${p1}-${p2}` : `${p2}-${p1}`;
                 pairCounts[key] = (pairCounts[key] || 0) + 1;
                 if (pairCounts[key] >= 3) {
-                    console.log("Validation fail: 3 identical pairs in range of 8 blocks.", pairsInRange, pairCounts);
+                    // console.log("Validation fail: 3 identical pairs in range of 8 blocks.", pairsInRange, pairCounts);
                     return false;
                 }
             }
@@ -974,7 +947,7 @@ document.addEventListener('DOMContentLoaded', () => {
             firstTwoPairsColors.add(bag[2]);
             firstTwoPairsColors.add(bag[3]);
             if (firstTwoPairsColors.size > 3) {
-                console.log("Validation fail: First two pairs have more than 3 unique colors.", Array.from(firstTwoPairsColors));
+                // console.log("Validation fail: First two pairs have more than 3 unique colors.", Array.from(firstTwoPairsColors));
                 return false;
             }
         }
@@ -985,7 +958,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (i < bag.length) firstFourPairsColors.add(bag[i]);
             }
             if (firstFourPairsColors.size > 4) {
-                 console.log("Validation fail: First four pairs have more than 4 unique colors.", Array.from(firstFourPairsColors));
+                 // console.log("Validation fail: First four pairs have more than 4 unique colors.", Array.from(firstFourPairsColors));
                 return false;
             }
         }
@@ -1000,6 +973,14 @@ document.addEventListener('DOMContentLoaded', () => {
         confirmEndGameModal.style.display = 'none';
         gameInterface.style.display = 'flex';
         savePairBtn.style.display = 'flex';
+        
+        // Set Difficulty
+        currentDifficulty = difficultySelector.value;
+        if (currentDifficulty === 'hard') {
+            activeColorNames = COLOR_NAMES_HARD;
+        } else {
+            activeColorNames = COLOR_NAMES_NORMAL;
+        }
 
         finalScoreLine.style.display = 'block';
         highscoreMessageLine.style.display = 'none';
@@ -1049,13 +1030,13 @@ document.addEventListener('DOMContentLoaded', () => {
         score = 0;
         combo = 0;
         maxcombo = 0;
+        // High score now depends on global currentDifficulty variable
         currentHighScore = getHighScore(gameMode);
         updateScoreDisplay();
         highscoreDisplay.textContent = currentHighScore;
         clearPlayfield();
         
 		savedPair = { primary: null, secondary: null };
-        adjustCellSize(); // This will also size the canvas
 
         blockBag = [];
         generateBlockBag();
@@ -1082,93 +1063,169 @@ document.addEventListener('DOMContentLoaded', () => {
             next2Pair.secondary = getRandomColorFallback();
         }
 
-        updatePreviewDisplays();
-        updateSavedPairDisplay();
 
         isFalling = false; // Game logic is idle
 
         dynamicComboDisplayElement.classList.remove('show', 'hide');
+		
+        
         
         // Start the continuous game loop
         gameLoopRequest = requestAnimationFrame(gameLoop);
         
-        console.log("Game initialized in mode:", gameMode, ", High Score:", currentHighScore, "Lang:", currentLanguage);
-    }
-
-    function updateSavedPairDisplay() {
-        const nextPairBlockSize = Math.max(15, Math.floor(cellSize * 0.85));
-        if (!savedPrimaryDisplay || !savedSecondaryDisplay) return;
-        const basePrimaryClass = 'block primary-block';
-        const baseSecondaryClass = 'block secondary-block';
-        const emptySlotColor = '#bdbdbd';
-
-        if (savedPair && savedPair.primary) {
-            savedPrimaryDisplay.className = `${basePrimaryClass} ${savedPair.primary}`;
-            savedSecondaryDisplay.className = `${baseSecondaryClass} ${savedPair.secondary}`;
-            savedPrimaryDisplay.style.backgroundColor = '';
-            savedSecondaryDisplay.style.backgroundColor = '';
-        } else {
-            savedPrimaryDisplay.className = basePrimaryClass;
-            savedSecondaryDisplay.className = baseSecondaryClass;
-            savedPrimaryDisplay.style.backgroundColor = emptySlotColor;
-            savedSecondaryDisplay.style.backgroundColor = emptySlotColor;
-            savedPrimaryDisplay.textContent = '';
-            savedSecondaryDisplay.textContent = '';
-        }
-        [savedPrimaryDisplay, savedSecondaryDisplay].forEach(b => {
-            b.style.width = `${nextPairBlockSize}px`;
-            b.style.height = `${nextPairBlockSize}px`;
-            b.style.borderRadius = `${Math.floor(nextPairBlockSize * 0.2)}px`;
-        });
-    }
-
-    function adjustCellSize() {
-        const playfieldPaddingAndGapsHorizontal = GRID_PADDING * 2 + (COLS - 1) * GRID_GAP;
-        const playfieldPaddingAndGapsVertical = GRID_PADDING * 2 + (ROWS - 1) * GRID_GAP;
-        const gameDisplayAreaWidth = document.getElementById('game-display-area').offsetWidth;
-        const previewAreaWidth = document.getElementById('pairs-preview-area').offsetWidth;
-        playfieldContainer.style.width = `calc(${gameDisplayAreaWidth}px - ${previewAreaWidth}px - 10px)`;
-        
-        const availableWidthForPlayfield = playfieldContainer.clientWidth - playfieldPaddingAndGapsHorizontal;
-        const availableHeightForPlayfield = playfieldContainer.clientHeight - playfieldPaddingAndGapsVertical;
-        
-        const cellSizeBasedOnWidth = Math.floor(availableWidthForPlayfield / COLS);
-        const cellSizeBasedOnHeight = Math.floor(availableHeightForPlayfield / ROWS);
-        cellSize = Math.max(10, Math.min(cellSizeBasedOnWidth, cellSizeBasedOnHeight));
-        if (cellSize < 10) cellSize = 10;
-        generateBlockCache(cellSize);
-        document.documentElement.style.setProperty('--cell-size', `${cellSize}px`);
-
-        // Update preview block sizes (unchanged)
-        const nextPairBlockSize = Math.max(15, Math.floor(cellSize * 0.85));
-        const currentPairBlockSize = Math.max(18, Math.floor(nextPairBlockSize * 1.25));
-        document.querySelectorAll('#current-pair .block').forEach(b => {
-            b.style.width = `${currentPairBlockSize}px`;
-            b.style.height = `${currentPairBlockSize}px`;
-            b.style.borderRadius = `${Math.floor(currentPairBlockSize * 0.2)}px`;
-        });
-        document.querySelectorAll('#next-pair .block, #next2-pair .block').forEach(b => {
-            b.style.width = `${nextPairBlockSize}px`;
-            b.style.height = `${nextPairBlockSize}px`;
-            b.style.borderRadius = `${Math.floor(nextPairBlockSize * 0.2)}px`;
-        });
+        console.log("Game initialized in mode:", gameMode, ", Difficulty:", currentDifficulty, ", High Score:", currentHighScore);
+		
+        adjustCellSize();
+		requestAnimationFrame(() => {
+        adjustCellSize();
+        updatePreviewDisplays();
         updateSavedPairDisplay();
-
-        // Set the canvas physical width and height
-        const playfieldGridWidth = COLS * cellSize + (COLS - 1) * GRID_GAP;
-        const playfieldGridHeight = ROWS * cellSize + (ROWS - 1) * GRID_GAP;
-        
-        playfieldCanvas.width = playfieldGridWidth + GRID_PADDING * 2;
-        playfieldCanvas.height = playfieldGridHeight + GRID_PADDING * 2;
-        
-        playfieldCanvas.style.width = `${playfieldCanvas.width}px`;
-        playfieldCanvas.style.height = `${playfieldCanvas.height}px`;
-
-        // Recalculate block fall speed
-        const pixelsPerRow = cellSize + GRID_GAP;
-        const secondsPerRow = FALL_SPEED / 1000.0;
-        blockFallSpeedPPS = pixelsPerRow / secondsPerRow;
+    });
     }
+
+    /**
+ * Draws a pair of blocks onto a canvas.
+ * @param {CanvasRenderingContext2D} ctx 
+ * @param {Object} pair - The pair object {primary, secondary}
+ * @param {number} blockSize - Size in pixels
+ * @param {Object} offset - {x, y} optional offset for drawing
+ * @param {number} alpha - Opacity (used for ghost/next2 blocks)
+ */
+function drawPairOnCanvas(ctx, pair, blockSize, offset = {x:0, y:0}, alpha = 1.0) {
+    if (!pair || !pair.primary) return;
+    
+    // Use your existing drawBlock function
+    // Note: We use 'false' for isPrimary on the secondary block
+    drawBlock(ctx, offset.x, offset.y, blockSize, pair.primary, true, alpha);
+    drawBlock(ctx, offset.x, offset.y + blockSize + GRID_GAP, blockSize, pair.secondary, false, alpha);
+}
+
+function updatePreviewDisplays() {
+    // 1. CLEAR CANVASES
+    currentCtx.clearRect(0, 0, currentCanvas.width, currentCanvas.height);
+    nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+
+    // 2. DRAW NOW PAIR (Centered)
+    // Simply draw at padding. Since canvas width = size + 2*padding, this is centered.
+    drawPairOnCanvas(currentCtx, currentPair, cellSize, {
+        x: previewCanvasPadding, 
+        y: previewCanvasPadding
+    });
+
+    // 3. DRAW NEXT & NEXT 2 (Aligned)
+    const nextSize = Math.floor(cellSize * 0.85);
+    
+    // Calculate coordinates using the symmetric logic
+    // Main Block X = Padding + GhostOffset (This puts it exactly in the canvas center)
+    const mainX = previewCanvasPadding + nextPairOffset.x;
+    const mainY = previewCanvasPadding;
+
+    // Ghost Block X = MainX + GhostOffset (To the right of main)
+    // Ghost Block Y = MainY + GhostOffsetY (Below main)
+    const ghostX = mainX + nextPairOffset.x; 
+    const ghostY = mainY + nextPairOffset.y;
+
+    // Draw Next 2 (Ghost) FIRST (Behind)
+    drawPairOnCanvas(nextCtx, next2Pair, nextSize, {x: ghostX, y: ghostY}, 0.3);
+
+    // Draw Next Pair (Main) ON TOP
+    drawPairOnCanvas(nextCtx, nextPair, nextSize, {x: mainX, y: mainY}, 1.0);
+}
+
+function updateSavedPairDisplay() {
+    if (!savedCtx) return;
+    const nextSize = Math.floor(cellSize * 0.85);
+    savedCtx.clearRect(0, 0, savedCanvas.width, savedCanvas.height);
+    
+    // Center the saved pair (Visual consistency with NOW pair)
+    // We use the same canvas width as NOW pair, but the block is smaller (nextSize).
+    // To center it: (CanvasWidth - BlockWidth) / 2
+    const centerOffset = (currentCanvas.width - nextSize) / 2;
+    
+    drawPairOnCanvas(savedCtx, savedPair, nextSize, {
+        x: centerOffset, 
+        y: previewCanvasPadding
+    });
+}
+
+function adjustCellSize() {
+    // 1. Calculate main Playfield Size (Keep your existing logic)
+    const playfieldPaddingAndGapsHorizontal = GRID_PADDING * 2 + (COLS - 1) * GRID_GAP;
+    const playfieldPaddingAndGapsVertical = GRID_PADDING * 2 + (ROWS - 1) * GRID_GAP;
+    const gameDisplayAreaWidth = document.getElementById('game-display-area').offsetWidth;
+    const previewAreaWidth = document.getElementById('pairs-preview-area').offsetWidth;
+    
+    playfieldContainer.style.width = `calc(${gameDisplayAreaWidth}px - ${previewAreaWidth}px - 10px)`;
+    
+    const availableWidthForPlayfield = playfieldContainer.clientWidth - playfieldPaddingAndGapsHorizontal;
+    const availableHeightForPlayfield = playfieldContainer.clientHeight - playfieldPaddingAndGapsVertical;
+    
+    const cellSizeBasedOnWidth = Math.floor(availableWidthForPlayfield / COLS);
+    const cellSizeBasedOnHeight = Math.floor(availableHeightForPlayfield / ROWS);
+    
+    // Update Global Cell Size
+    cellSize = Math.max(10, Math.min(cellSizeBasedOnWidth, cellSizeBasedOnHeight));
+    if (cellSize < 10) cellSize = 10;
+    
+    generateBlockCache(cellSize);
+    document.documentElement.style.setProperty('--cell-size', `${cellSize}px`);
+
+    // 2. Playfield Canvas Sizing
+    const playfieldGridWidth = COLS * cellSize + (COLS - 1) * GRID_GAP;
+    const playfieldGridHeight = ROWS * cellSize + (ROWS - 1) * GRID_GAP;
+    playfieldCanvas.width = playfieldGridWidth + GRID_PADDING * 2;
+    playfieldCanvas.height = playfieldGridHeight + GRID_PADDING * 2;
+    playfieldCanvas.style.width = `${playfieldCanvas.width}px`;
+    playfieldCanvas.style.height = `${playfieldCanvas.height}px`;
+
+    // 3. --- NEW PREVIEW CANVAS SIZING (Symmetric Alignment) ---
+    
+    const pad = previewCanvasPadding * 2; 
+    const nextSize = Math.floor(cellSize * 0.85);
+
+    // Calculate Dynamic Offsets based on size (no more magic numbers!)
+    // We shift the ghost block right/down by ~25% of the block size
+    const ghostShiftX = Math.floor(nextSize * 0.25); 
+    const ghostShiftY = Math.floor(nextSize * 0.25);
+
+    // Store these for the drawing function
+    nextPairOffset = { x: ghostShiftX, y: ghostShiftY };
+
+    // RESIZE NOW & SAVE CANVASES (Standard centering)
+    // Width = Block + Padding. (CSS centers the canvas, so content is centered).
+    const standardWidth = cellSize + pad;
+    const standardHeight = (cellSize * 2) + GRID_GAP + pad;
+    const savedHeight = (nextSize * 2) + GRID_GAP + pad;
+    
+    const resizeCanvas = (canvas, w, h) => {
+        canvas.width = w;
+        canvas.height = h;
+        canvas.style.width = `${w}px`;
+        canvas.style.height = `${h}px`;
+    };
+
+    resizeCanvas(currentCanvas, standardWidth, standardHeight);
+    resizeCanvas(savedCanvas, standardWidth, savedHeight); 
+
+    // RESIZE NEXT CANVAS (Symmetric centering)
+    // To ensure the MAIN block is centered, we need equal spacing on Left and Right.
+    // Left Space needed: Padding + GhostShift (Empty space to balance the ghost)
+    // Right Space needed: Padding + GhostShift (Occupied by ghost)
+    // Center Content: Main Block width
+    const symmetricWidth = nextSize + (2 * ghostShiftX) + pad;
+    const heightWithGhost = (nextSize * 2) + GRID_GAP + ghostShiftY + pad;
+    
+    resizeCanvas(nextCanvas, symmetricWidth, heightWithGhost);
+
+    // 4. Update Game Constants
+    const pixelsPerRow = cellSize + GRID_GAP;
+    const secondsPerRow = FALL_SPEED / 1000.0;
+    blockFallSpeedPPS = pixelsPerRow / secondsPerRow;
+
+    // 5. Redraw Previews
+    updatePreviewDisplays();
+    updateSavedPairDisplay();
+}
 
     window.addEventListener('resize', adjustCellSize);
 
@@ -1177,7 +1234,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getRandomColorFallback() {
-        return COLOR_NAMES[Math.floor(Math.random() * COLOR_NAMES.length)];
+        return activeColorNames[Math.floor(Math.random() * activeColorNames.length)];
     }
 
     function generateNewPair() {
@@ -1204,23 +1261,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updatePreviewDisplays();
     }
 
-    function updatePreviewDisplays() {
-        if (currentPair.primary) {
-            currentPrimaryDisplay.className = `block primary-block ${currentPair.primary}`;
-            currentSecondaryDisplay.className = `block secondary-block ${currentPair.secondary}`;
-        }
-        if (nextPair.primary) {
-            nextPrimaryDisplay.className = `block primary-block ${nextPair.primary}`;
-            nextSecondaryDisplay.className = `block secondary-block ${nextPair.secondary}`;
-        }
-        if (next2Pair.primary && next2PrimaryDisplay && next2SecondaryDisplay) {
-            next2PrimaryDisplay.className = `block primary-block ${next2Pair.primary}`;
-            next2SecondaryDisplay.className = `block secondary-block ${next2Pair.secondary}`;
-        } else if (next2PrimaryDisplay && next2SecondaryDisplay) {
-            next2PrimaryDisplay.className = `block primary-block`;
-            next2SecondaryDisplay.className = `block secondary-block`;
-        }
-    }
+   
 
     playfieldCanvas.addEventListener('mousedown', handleDragStart);
     playfieldCanvas.addEventListener('touchstart', handleDragStart, { passive: false });
@@ -2123,7 +2164,8 @@ document.addEventListener('DOMContentLoaded', () => {
         blockRenderCache = {}; // Clear old cache
         
         // Add 'fallback' to handle the '#bdbdbd' color
-        const colorsToCache = [...COLOR_NAMES, 'fallback'];
+        // Use ALL_COLOR_NAMES to ensure cache is valid even if mode changes
+        const colorsToCache = [...ALL_COLOR_NAMES, 'fallback'];
         const primaryStates = [true, false];
         const shadowPadding = 8; // Safe pixel buffer for outset shadows
 
