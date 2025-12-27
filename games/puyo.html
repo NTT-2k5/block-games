@@ -9,7 +9,7 @@ body {
     font-family: Arial, sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #f0f0f0;
+    background-color: #dddddd;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -26,8 +26,10 @@ body {
     align-items: center;
     height: 100vh; /* Make game container take full viewport height */
     max-height: 100vh; /* Ensure it doesn't exceed viewport */
-    padding: 5px; /* Add a little padding around the game container */
+    padding: 7px; /* Add a little padding around the game container */
     box-sizing: border-box;
+	background-color: #f0f0f0;
+	box-shadow: 0 0 25px rgba(0,0,0,0.2);
 }
 
 /* Modal Styles */
@@ -37,7 +39,7 @@ body {
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.1); /* Darker background for better contrast */
+    background-color: rgba(0, 0, 0, 0.1);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -51,7 +53,7 @@ body {
     padding: 20px;
     border-radius: 8px;
     text-align: center;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    box-shadow: 0 8px 8px rgba(0,0,0,0.2);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -291,6 +293,15 @@ body {
     box-sizing: border-box;
     position: relative;
     z-index: 5;
+    box-shadow: 3px 3px rgba(0,0,0,0.2);
+	transition: all 0.05s ease;
+}
+#save-pair-btn:hover{
+	background-color: #dbdbdb;
+}
+#save-pair-btn:active {
+	transform: translate(2px, 2px);
+	box-shadow: none;
 }
 
 #save-pair-btn .save-btn-text {
@@ -1024,7 +1035,7 @@ let nextCanvasSize = { w: 0, h: 0 };
             timerStatDisplay.style.display = 'none';
             allowInput = true;
         }
-	    playfieldContainer.style.marginBottom = '15px';
+	    playfieldContainer.style.marginBottom = '4px';
 		playfieldContainer.style.marginRight = '4px';
 
         score = 0;
@@ -1905,7 +1916,7 @@ function adjustCellSize() {
     });
 
     savePairBtn.addEventListener('click', () => {
-        if (!allowInput || isFalling || isGamePaused) return;
+        //if (!allowInput || isFalling || isGamePaused) return;
         if (!savedPair || !savedPair.primary) {
             savedPair = { ...currentPair };
             generateNewPair();
