@@ -1757,11 +1757,6 @@ const CELL_COUNT  = 5; // colours + garbage
 const MASK_12 = 0x0FFF; // bits 0-11  (rows 0-11)
 const MASK_13 = 0x1FFF; // bits 0-12  (rows 0-12)
 
-// Puyo chain scoring tables (from chain.h)
-const CHAIN_POWER  = [0,8,16,32,64,96,128,160,192,224,256,288,320,352,384,416,448,480,512];
-const COLOR_BONUS  = [0,0,3,6,12,24];
-const GROUP_BONUS  = [0,0,0,0,0,2,3,4,5,6,7,10];
-
 // ── Playstyle weight presets (WHAT the AI tries to do) ─────────────────────
 // These describe strategy, not difficulty. Pass as 3rd arg to BeamCpuPlayer.
 const PLAYSTYLES = {
@@ -2053,7 +2048,6 @@ function field_pop(f) {
 }
 
 function score_chain_step(chainIdx, f, popMasks, allPop) {
-    // Count puyos popped
     let popCount = 0;
     for (let x = 0; x < 6; x++) {
         let v = allPop[x];
@@ -2063,44 +2057,14 @@ function score_chain_step(chainIdx, f, popMasks, allPop) {
         popCount += (v * 0x0101) >> 8;
     }
 
-    const chainPower = CHAIN_POWER[Math.min(chainIdx - 1, CHAIN_POWER.length - 1)];
-
-    // Colour bonus
-    let colorCount = 0;
-    for (let c = 0; c < COLORS; c++) {
-        let empty = true;
-        for (let x = 0; x < 6; x++) if (popMasks[c][x]) { empty = false; break; }
-        if (!empty) colorCount++;
-    }
-    const bonusColor = COLOR_BONUS[Math.min(colorCount, COLOR_BONUS.length - 1)];
-
-    // Group bonus
-    let groupBonus = 0;
-    for (let c = 0; c < COLORS; c++) {
-        const pm = new Uint16Array(popMasks[c]);
-        while (true) {
-            let found = false, gx = -1, gy = -1;
-            outer: for (let x = 0; x < 6; x++) {
-                for (let y = 0; y < 12; y++) {
-                    if ((pm[x] >> y) & 1) { gx = x; gy = y; found = true; break outer; }
-                }
-            }
-            if (!found) break;
-            const group = flood_fill(pm, gx, gy);
-            let sz = 0;
-            for (let x = 0; x < 6; x++) {
-                let v = group[x];
-                v = v - ((v >> 1) & 0x5555);
-                v = (v & 0x3333) + ((v >> 2) & 0x3333);
-                v = (v + (v >> 4)) & 0x0F0F;
-                sz += (v * 0x0101) >> 8;
-                pm[x] &= ~group[x]; // remove found group
-            }
-            groupBonus += GROUP_BONUS[Math.min(sz, GROUP_BONUS.length - 1)];
-        }
+    let pts = 0;
+    if (chainIdx < 4) {
+        pts = popCount * Math.pow(2, chainIdx - 1);
+    } else {
+        pts = popCount * 8 * (chainIdx - 3);
     }
 
-    return popCount * 10 * Math.max(1, Math.min(999, chainPower + bonusColor + groupBonus));
+    return pts * 50; 
 }
 
 // Flood-fill connected region starting at (x, y) within mask m
@@ -2502,11 +2466,6 @@ const CELL_COUNT  = 5; // colours + garbage
 const MASK_12 = 0x0FFF; // bits 0-11  (rows 0-11)
 const MASK_13 = 0x1FFF; // bits 0-12  (rows 0-12)
 
-// Puyo chain scoring tables (from chain.h)
-const CHAIN_POWER  = [0,8,16,32,64,96,128,160,192,224,256,288,320,352,384,416,448,480,512];
-const COLOR_BONUS  = [0,0,3,6,12,24];
-const GROUP_BONUS  = [0,0,0,0,0,2,3,4,5,6,7,10];
-
 // ── Playstyle weight presets (WHAT the AI tries to do) ─────────────────────
 // These describe strategy, not difficulty. Pass as 3rd arg to BeamCpuPlayer.
 const PLAYSTYLES = {
@@ -2798,7 +2757,6 @@ function field_pop(f) {
 }
 
 function score_chain_step(chainIdx, f, popMasks, allPop) {
-    // Count puyos popped
     let popCount = 0;
     for (let x = 0; x < 6; x++) {
         let v = allPop[x];
@@ -2808,44 +2766,14 @@ function score_chain_step(chainIdx, f, popMasks, allPop) {
         popCount += (v * 0x0101) >> 8;
     }
 
-    const chainPower = CHAIN_POWER[Math.min(chainIdx - 1, CHAIN_POWER.length - 1)];
-
-    // Colour bonus
-    let colorCount = 0;
-    for (let c = 0; c < COLORS; c++) {
-        let empty = true;
-        for (let x = 0; x < 6; x++) if (popMasks[c][x]) { empty = false; break; }
-        if (!empty) colorCount++;
-    }
-    const bonusColor = COLOR_BONUS[Math.min(colorCount, COLOR_BONUS.length - 1)];
-
-    // Group bonus
-    let groupBonus = 0;
-    for (let c = 0; c < COLORS; c++) {
-        const pm = new Uint16Array(popMasks[c]);
-        while (true) {
-            let found = false, gx = -1, gy = -1;
-            outer: for (let x = 0; x < 6; x++) {
-                for (let y = 0; y < 12; y++) {
-                    if ((pm[x] >> y) & 1) { gx = x; gy = y; found = true; break outer; }
-                }
-            }
-            if (!found) break;
-            const group = flood_fill(pm, gx, gy);
-            let sz = 0;
-            for (let x = 0; x < 6; x++) {
-                let v = group[x];
-                v = v - ((v >> 1) & 0x5555);
-                v = (v & 0x3333) + ((v >> 2) & 0x3333);
-                v = (v + (v >> 4)) & 0x0F0F;
-                sz += (v * 0x0101) >> 8;
-                pm[x] &= ~group[x]; // remove found group
-            }
-            groupBonus += GROUP_BONUS[Math.min(sz, GROUP_BONUS.length - 1)];
-        }
+    let pts = 0;
+    if (chainIdx < 4) {
+        pts = popCount * Math.pow(2, chainIdx - 1);
+    } else {
+        pts = popCount * 8 * (chainIdx - 3);
     }
 
-    return popCount * 10 * Math.max(1, Math.min(999, chainPower + bonusColor + groupBonus));
+    return pts * 50; 
 }
 
 // Flood-fill connected region starting at (x, y) within mask m
@@ -3165,9 +3093,38 @@ function beam_search(f, queue, w, beam_width, beamDepth) {
 }
 
 self.onmessage = function(e) {
-    const { f, queue, w, bw, bd } = e.data;
+    const { f, oppF, queue, w, bw, bd } = e.data;
+    
+    // 1. Reconstruct AI field
     const field = f.map(col => new Uint16Array(col));
-    const result = beam_search(field, queue, w, bw, bd);
+    
+    // Clone weights so we can mutate them safely for this turn
+    let activeWeights = { ...w };
+
+    // 2. Opponent Observation (The "Eye")
+    if (oppF) {
+        const opponentField = oppF.map(col => new Uint16Array(col));
+        
+        // Use the AI's own quiescence search on the opponent's board
+        // to calculate the maximum score they can unleash right now.
+        const oppPotentialScore = quiet_search(opponentField, w, 6);
+        
+        // 3. Dynamic Strategy Adjustment
+        // If the opponent has a strong chain prepared (e.g., score > 1500)
+        // or a fast harass attack, the AI goes into Panic/Counter mode.
+        if (oppPotentialScore > 1500) {
+            // Panic Mode: Drastically reduce penalty for wasting pieces,
+            // encourage early popping to counter the incoming threat.
+            activeWeights.waste = Math.max(activeWeights.waste, -5);
+            activeWeights.waste_14 = Math.max(activeWeights.waste_14, -5);
+            activeWeights.chain = activeWeights.chain * 1.5; // Highly value immediate chains
+            activeWeights.shape = 0; // Ignore beautiful shapes, focus on survival
+        }
+    }
+
+    // 4. Run the Beam Search with the dynamically adjusted weights
+    const result = beam_search(field, queue, activeWeights, bw, bd);
+    
     self.postMessage(result);
 };
 `;
@@ -3203,7 +3160,7 @@ class SukCpuPlayer {
 
 		// Level 1-2: pure stackers — no chain lookahead.
 		// Level 3: tiny chain awareness so it occasionally reacts to setups.
-		this.chainBonusWeight = [0, 0, 0.9][this.level - 1];
+		this.chainBonusWeight = [0, 0, 1][this.level - 1];
 
 		// Cosmetic delays (ms)
 		this.delays = [2000, 1800, 1500];
@@ -3436,34 +3393,32 @@ class SukCpuPlayer {
 class BeamCpuPlayer {
     // constructor(game, level)             — level 1-5, playstyle defaults to 'freestyle'
     // constructor(game, level, playstyle)  — 'build' | 'fast' | 'ac' | 'freestyle'
-    constructor(game, level, playstyle) {
-		this.game   = game;
-		this.active = true;
-		this.level  = Math.max(1, Math.min(5, level || 3));
+    constructor(game, opponentGame, level, playstyle) {
+        this.game = game;
+        this.opponentGame = opponentGame; // Reference to the human player's game instance
+        this.active = true;
+        this.level = Math.max(1, Math.min(5, level || 3));
 
-		if (this.level <= 3) {
-			// Levels 1-3: delegate entirely to the Suk GP stacker
-			this._suk = new SukCpuPlayer(game, this.level);
-			this.worker = null;
-		} else {
-			// Levels 4-5: beam search via Web Worker
-			this._suk = null;
+        if (this.level <= 3) {
+            this._suk = new SukCpuPlayer(game, this.level);
+            this.worker = null;
+        } else {
+            this._suk = null;
+            const psName = (typeof playstyle === 'string' && PLAYSTYLES[playstyle]) ? playstyle : DEFAULT_PLAYSTYLE;
+            const diff = DIFFICULTY[this.level];
 
-			const psName = (typeof playstyle === 'string' && PLAYSTYLES[playstyle]) ? playstyle : DEFAULT_PLAYSTYLE;
-			const diff   = DIFFICULTY[this.level];
+            this.w = { ...PLAYSTYLES[psName], _quietCols: diff.qc, _topN: diff.topN };
+            this.bw = diff.bw;
+            this.bd = diff.bd;
+            this.playstyle = psName;
 
-			this.w         = { ...PLAYSTYLES[psName], _quietCols: diff.qc, _topN: diff.topN };
-			this.bw        = diff.bw;
-			this.bd        = diff.bd;
-			this.playstyle = psName;
+            const blob = new Blob([BEAM_WORKER_SRC], { type: 'text/javascript' });
+            this.worker = new Worker(URL.createObjectURL(blob));
+            this.workerBusy = false;
+        }
 
-			const blob = new Blob([BEAM_WORKER_SRC], { type: 'text/javascript' });
-			this.worker = new Worker(URL.createObjectURL(blob));
-			this.workerBusy = false;
-		}
-
-		this.delay = DELAYS[this.level - 1];
-	}
+        this.delay = DELAYS[this.level - 1];
+    }
 
 	onTurnReady() {
 		if (!this.active) return;
@@ -3478,48 +3433,57 @@ class BeamCpuPlayer {
 	}
 
 	makeMove() {
-		// Only called for beam levels (4-5); Suk handles its own makeMove
-		if (!this.active || !this.game.allowInput || this.game.isFalling || this.game.isPaused) return;
-		if (this.workerBusy) return;
+        if (!this.active || !this.game.allowInput || this.game.isFalling || this.game.isPaused) return;
+        if (this.workerBusy) return;
 
-		const game = this.game;
-		if (!_colorMap) build_color_map(game.activeColorNames || GAME_CONFIG.COLOR_NAMES_NORMAL);
+        const game = this.game;
+        if (!_colorMap) build_color_map(game.activeColorNames || GAME_CONFIG.COLOR_NAMES_NORMAL);
 
-		const f = game_field_to_field(game.playfield, GAME_CONFIG.ROWS, GAME_CONFIG.COLS);
-		const pName = game.currentPair.primary;
-		const sName = game.currentPair.secondary;
-		const queue = [[color_to_idx(pName), color_to_idx(sName)]];
-		if (game.nextPair?.primary)
-			queue.push([color_to_idx(game.nextPair.primary), color_to_idx(game.nextPair.secondary)]);
-		if (game.next2Pair?.primary)
-			queue.push([color_to_idx(game.next2Pair.primary), color_to_idx(game.next2Pair.secondary)]);
+        // Convert AI field
+        const f = game_field_to_field(game.playfield, GAME_CONFIG.ROWS, GAME_CONFIG.COLS);
+        
+        // Convert Opponent field (if available)
+        let oppF = null;
+        if (this.opponentGame && this.opponentGame.playfield) {
+            oppF = game_field_to_field(this.opponentGame.playfield, GAME_CONFIG.ROWS, GAME_CONFIG.COLS);
+        }
 
-		// Threat response — under pressure, relax waste penalty so it fires sooner
-		const maxHeight = Math.max(...Array.from({length: GAME_CONFIG.COLS}, (_, c) => {
-			let h = 0;
-			for (let r = 0; r < GAME_CONFIG.ROWS; r++) if (game.playfield[r][c]) { h = GAME_CONFIG.ROWS - r; break; }
-			return h;
-		}));
-		const underThreat = game.rockQueue > 0 || game.rockTimerExpired || maxHeight >= 8;
-		const w = underThreat
-			? { ...this.w, waste: Math.max(this.w.waste, -20), waste_14: Math.max(this.w.waste_14, -10) }
-			: this.w;
+        const pName = game.currentPair.primary;
+        const sName = game.currentPair.secondary;
+        const queue = [[color_to_idx(pName), color_to_idx(sName)]];
+        if (game.nextPair?.primary) queue.push([color_to_idx(game.nextPair.primary), color_to_idx(game.nextPair.secondary)]);
+        if (game.next2Pair?.primary) queue.push([color_to_idx(game.next2Pair.primary), color_to_idx(game.next2Pair.secondary)]);
 
-		const fSerial = Array.from(f).map(col => Array.from(col));
+        // Check for immediate physical threat (rocks already queued)
+        const maxHeight = Math.max(...Array.from({length: GAME_CONFIG.COLS}, (_, c) => {
+            let h = 0;
+            for (let r = 0; r < GAME_CONFIG.ROWS; r++) if (game.playfield[r][c]) { h = GAME_CONFIG.ROWS - r; break; }
+            return h;
+        }));
+        
+        const underThreat = game.rockQueue > 0 || game.rockTimerExpired || maxHeight >= 8;
+        const w = underThreat
+            ? { ...this.w, waste: Math.max(this.w.waste, -20), waste_14: Math.max(this.w.waste_14, -10) }
+            : this.w;
 
-		this.workerBusy = true;
-		this.worker.onmessage = (e) => {
-			this.workerBusy = false;
-			if (!this.active) return;
-			const beamPlacement = e.data;
-			if (!beamPlacement) { game.endGame(); return; }
-			if (!game.allowInput || game.isFalling || game.isPaused) return;
-			const placement = placement_to_game(f, beamPlacement, pName, sName, GAME_CONFIG.ROWS);
-			game.cpuPlace(placement.primary, placement.secondary);
-		};
+        // Serialize fields for Worker transfer
+        const fSerial = Array.from(f).map(col => Array.from(col));
+        const oppFSerial = oppF ? Array.from(oppF).map(col => Array.from(col)) : null;
 
-		this.worker.postMessage({ f: fSerial, queue, w, bw: this.bw, bd: this.bd });
-	}
+        this.workerBusy = true;
+        this.worker.onmessage = (e) => {
+            this.workerBusy = false;
+            if (!this.active) return;
+            const beamPlacement = e.data;
+            if (!beamPlacement) { game.endGame(); return; }
+            if (!game.allowInput || game.isFalling || game.isPaused) return;
+            const placement = placement_to_game(f, beamPlacement, pName, sName, GAME_CONFIG.ROWS);
+            game.cpuPlace(placement.primary, placement.secondary);
+        };
+
+        // Send both AI and Opponent fields to the Worker
+        this.worker.postMessage({ f: fSerial, oppF: oppFSerial, queue, w, bw: this.bw, bd: this.bd });
+    }
 
 	stop() {
 		this.active = false;
@@ -3768,7 +3732,7 @@ class BeamCpuPlayer {
                     onGameOver: () => {
                         cpuLostFirst = true;
                         cpuPlayer.stop();
-                        document.getElementById('cpu-status-display').textContent = '💀 Lost!';
+                        document.getElementById('cpu-status-display').textContent = '💀';
                         document.getElementById('rock-stat').style.display = 'none';
                         if (activeGame) {
                             activeGame.clearTimers();
@@ -3818,7 +3782,7 @@ class BeamCpuPlayer {
 				cpuCanvas.style.width  = saveBtnWidth + 'px';   // force canvas to exact save button width
 				cpuCanvas.style.height = cpuCanvas.height + 'px';
 
-                cpuPlayer = new BeamCpuPlayer(cpuGame, cpuLevel || 3);
+                cpuPlayer = new BeamCpuPlayer(cpuGame, activeGame, cpuLevel || 3);
 				const cpuSelector = document.getElementById('cpu-level-selector');
 				const selectedDiffText = cpuSelector.options[cpuSelector.selectedIndex].text;
 				const cdiffName = selectedDiffText.split(' — ')[1] || selectedDiffText;
