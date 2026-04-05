@@ -1084,7 +1084,8 @@ console.log(`[${who}] INIT bagLength=${this.blockBag.length} current=${this.curr
             let fell;
             do {
                 fell = await this.applyGravity();
-                if (fell) await new Promise(r => setTimeout(r, GAME_CONFIG.FALL_SPEED * 1.5));
+                // Wait at least 150ms to allow the squish animation to fully complete
+                if (fell) await new Promise(r => setTimeout(r, Math.max(150, GAME_CONFIG.FALL_SPEED * 1.5)));
             } while (fell);
 
             // Match Phase — track total score earned this turn for rock calculation
@@ -1114,7 +1115,8 @@ console.log(`[${who}] INIT bagLength=${this.blockBag.length} current=${this.curr
 
                     do {
                         fell = await this.applyGravity();
-                        if (fell) await new Promise(r => setTimeout(r, GAME_CONFIG.FALL_SPEED * 1.5));
+                        // Wait at least 150ms to allow the squish animation to fully complete
+                        if (fell) await new Promise(r => setTimeout(r, Math.max(150, GAME_CONFIG.FALL_SPEED * 1.5)));
                     } while (fell);
                 }
             } while (matchData.count > 0);
