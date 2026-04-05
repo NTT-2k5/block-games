@@ -478,7 +478,7 @@ body {
                     <span id="time-left" class="stat-value">0.0</span>
                 </div>
                 <div id="rock-stat" class="stat-item" style="display: none;">
-                    <span class="stat-emoji">🧱</span>
+                    <span class="stat-emoji">⬛</span>
                     <span id="rock-count" class="stat-value" style="color:#e53935">0</span>
                     <span id="rock-timer" class="stat-value" style="color:#e53935; margin-left:5px; font-weight: 600"></span>
                 </div>
@@ -1011,6 +1011,15 @@ console.log(`[${who}] INIT bagLength=${this.blockBag.length} current=${this.curr
 
         update(deltaTime) {
             if (this.isPaused) return;
+			
+			for (let r = 0; r < GAME_CONFIG.ROWS; r++) {
+                for (let c = 0; c < GAME_CONFIG.COLS; c++) {
+                    const b = this.playfield[r][c];
+                    if (b && b.squishTimer > 0) {
+                        b.squishTimer -= deltaTime;
+                    }
+                }
+            }
 
             // Update Falling Blocks
             if (this.fallingBlocks.length > 0) {
@@ -1020,6 +1029,9 @@ console.log(`[${who}] INIT bagLength=${this.blockBag.length} current=${this.curr
                     if (block.y >= block.targetY) {
                         block.y = block.targetY;
                         block.blockData.isFalling = false;
+						if (block.colorName !== 'rock') {
+                            block.blockData.squishTimer = 0.15;
+                        }
                         this.fallingBlocks.splice(i, 1);
                     }
                 }
@@ -1311,11 +1323,37 @@ console.log(`[${who}] INIT bagLength=${this.blockBag.length} current=${this.curr
             }
 
             // 2. Settled
-            for (let r = 0; r < GAME_CONFIG.ROWS; r++) {
-                for (let c = 0; c < GAME_CONFIG.COLS; c++) {
+            for (let c = 0; c < GAME_CONFIG.COLS; c++) {
+                let cumulativeYOffset = 0; // Tracks how much the blocks below have compressed
+                
+                // Draw from bottom (ROWS - 1) to top (0)
+                for (let r = GAME_CONFIG.ROWS - 1; r >= 0; r--) {
                     const b = this.playfield[r][c];
                     if (b && !b.isFalling) {
-                        AssetManager.drawBlock(this.ctx, this.gridToPixel(c), this.gridToPixel(r), this.cellSize, b.colorName, false, 1.0, this.cellSize);
+                        const px = this.gridToPixel(c);
+                        // Apply the compression offset from any squishing blocks underneath
+                        const py = this.gridToPixel(r) + cumulativeYOffset; 
+
+                        // Bulletproof check: ONLY squish if it has a timer AND is not a rock
+                        if (b.squishTimer > 0 && b.colorName !== 'rock') {
+                            const progress = b.squishTimer / 0.15; 
+                            const squishAmount = Math.sin(progress * Math.PI); 
+                            
+                            const scaleX = 1.0 + (0.25 * squishAmount);
+                            const scaleY = 1.0 - (0.25 * squishAmount);
+
+                            this.ctx.save();
+                            this.ctx.translate(px + this.cellSize / 2, py + this.cellSize);
+                            this.ctx.scale(scaleX, scaleY);
+                            AssetManager.drawBlock(this.ctx, -this.cellSize / 2, -this.cellSize, this.cellSize, b.colorName, false, 1.0, this.cellSize);
+                            this.ctx.restore();
+
+                            // Add the height lost by this block to the offset for the block above it
+                            cumulativeYOffset += this.cellSize * (1.0 - scaleY);
+                        } else {
+                            // Normal draw for rocks and resting blocks
+                            AssetManager.drawBlock(this.ctx, px, py, this.cellSize, b.colorName, false, 1.0, this.cellSize);
+                        }
                     }
                 }
             }
@@ -3524,6 +3562,12 @@ class BeamCpuPlayer {
             diff: document.getElementById('difficulty-selector'),
             lang: document.getElementById('language-selector')
         };
+		
+		// Generate the rock image as a Base64 URL for the HUD
+        const rockIconCvs = document.createElement('canvas');
+        rockIconCvs.width = 32; rockIconCvs.height = 32;
+        AssetManager.renderRockToContext(rockIconCvs.getContext('2d'), 2, 2, 26);
+        const rockDataUrl = rockIconCvs.toDataURL();
         
         let activeGame = null;
 		let cpuGame = null;
@@ -3559,32 +3603,26 @@ class BeamCpuPlayer {
                 const actualQueue = activeGame.rockQueue;
                 const netRocks = actualQueue - humanProjectedRocks;
 
+                // 1. Always enforce the rock icon
+                emojiEl.innerHTML = `<img src="${rockDataUrl}" style="width: 1.5em; height: 1.5em; display: block;">`;
+
+                // 2. Update numbers and colors based on status
                 if (netRocks > 0) {
-                    stat.style.display = 'flex';
-                    emojiEl.textContent = '🧱';
                     countEl.textContent = netRocks;
-                    countEl.style.color = '#e53935'; 
+                    countEl.style.color = '#e53935'; // Red (Receiving)
                     
                     const timeLeft = activeGame.rockTimerRemaining;
                     const dots = timeLeft > 3.3 ? '④' : timeLeft > 2.2 ? '③' : timeLeft > 1.1 ? '②' : timeLeft > 0 ? '①' : '';
                     timerEl.textContent = dots;
                     timerEl.style.color = '#e53935';
                 } else if (netRocks < 0) {
-                    stat.style.display = 'flex';
-                    emojiEl.textContent = '🗡️'; 
                     countEl.textContent = Math.abs(netRocks);
-                    countEl.style.color = '#4CAF50'; 
+                    countEl.style.color = '#4CAF50'; // Green (Attacking)
                     timerEl.textContent = ''; 
                 } else {
-                    if (actualQueue === 0 && humanProjectedRocks === 0) {
-                        stat.style.display = 'none';
-                    } else {
-                        stat.style.display = 'flex';
-                        emojiEl.textContent = '🛡️'; 
-                        countEl.textContent = '0';
-                        countEl.style.color = '#757575'; 
-                        timerEl.textContent = '';
-                    }
+                    countEl.textContent = '0';
+                    countEl.style.color = '#757575'; // Gray (Neutral/Zero)
+                    timerEl.textContent = '';
                 }
             }
 
@@ -3714,8 +3752,10 @@ class BeamCpuPlayer {
 				} : null,
             };
 
+            // Hide Highscore and show Rock queue permanently in VS Mode
+            document.getElementById('highscore-stat').style.display = isVsCpu ? 'none' : 'flex';
             document.getElementById('timer-stat').style.display = (soloMode === 'relax' || isVsCpu) ? 'none' : 'flex';
-            document.getElementById('rock-stat').style.display = 'none'; // hidden until rocks arrive
+            document.getElementById('rock-stat').style.display = isVsCpu ? 'flex' : 'none';
 
             activeGame = new PuyoGame(document.getElementById('playfield-canvas'), preview, ui, humanConfig);
             activeGame.init();
@@ -3724,6 +3764,7 @@ class BeamCpuPlayer {
             if (isVsCpu) {
                 cpuLostFirst = false;
                 cpuCanvas = document.getElementById('cpu-playfield-canvas');
+				updatePlayerRockHUD();
                 const cpuConfig = {
                     mode: 'relax',
 					difficulty: diff,
