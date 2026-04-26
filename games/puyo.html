@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -413,7 +414,7 @@ body {
         <div id="mode-selection-modal" class="modal">
             <div class="modal-content">
                 <h2 id="main-menu-title">Falling Tile Matching</h2>
-                <button id="relax-mode-btn">Relax Mode</button>
+                <button id="relax-mode-btn">Practice Mode</button>
                 <button id="timed-mode-btn">Timed Mode</button>
                 <button id="pressure-mode-btn">Pressure Mode</button>
 				<button id="vs-cpu-mode-btn">VS CPU</button>
@@ -906,6 +907,7 @@ body {
         init() {
             // Reset State
             this.score = 0;
+			this.maxScore = 0;
             this.combo = 0;
             this.maxcombo = 0;
             this.savedPair = { primary: null, secondary: null };
@@ -934,6 +936,7 @@ body {
 console.log(`[${who}] INIT bagLength=${this.blockBag.length} current=${this.currentPair.primary}/${this.currentPair.secondary} next=${this.nextPair.primary}/${this.nextPair.secondary} next2=${this.next2Pair.primary}/${this.next2Pair.secondary}`);*/
             
             // UI Updates
+			if (this.uiEls.score) this.uiEls.score.style.color = '#333333';
             this.updateScoreUI();
             
             // Mode Specifics
@@ -1098,12 +1101,17 @@ console.log(`[${who}] INIT bagLength=${this.blockBag.length} current=${this.curr
                 matchData = await this.findAndClearMatches();
                 if (matchData.count > 0) {
                     this.combo = (this.combo === 0) ? 1 : this.combo + 1;
+					if (this.combo === 1 && this.config.mode === 'relax') {
+						this.score = 0;
+						if (this.uiEls.score) this.uiEls.score.style.color = '#333333';
+					}
                     this.maxcombo = Math.max(this.maxcombo, this.combo);
 
                     let pts = 0;
                     if (this.combo < 4) pts = matchData.count * Math.pow(2, this.combo-1);
                     else pts = matchData.count * 8 * (this.combo-3);
                     this.score += pts;
+					this.maxScore = Math.max(this.maxScore, this.score);
                     this.updateScoreUI();
 
                     if (this.config.onCombo) {
@@ -1123,6 +1131,10 @@ console.log(`[${who}] INIT bagLength=${this.blockBag.length} current=${this.curr
                     } while (fell);
                 }
             } while (matchData.count > 0);
+			
+			if (this.combo === 0 && this.config.mode === 'relax') {
+                if (this.uiEls.score) this.uiEls.score.style.color = '#9e9e9e'; 
+            }
 
             // After all clears: send rocks to opponent based on score gained this turn
             const scoreGained = this.score - scoreAtTurnStart;
@@ -1634,7 +1646,8 @@ console.log(`[${who}] INIT bagLength=${this.blockBag.length} current=${this.curr
             this.isPaused = true;
             this.allowInput = false;
             this.clearTimers();
-            if(this.config.onGameOver) this.config.onGameOver(this.score, this.maxcombo);
+            const finalScore = (this.config.mode === 'relax') ? this.maxScore : this.score;
+            if(this.config.onGameOver) this.config.onGameOver(finalScore, this.maxcombo);
         }
         
         clearTimers() {
@@ -3698,11 +3711,12 @@ class BeamCpuPlayer {
                         document.getElementById('final-score').textContent = score;
                         document.getElementById('max-combo').textContent = maxcombo;
                         document.getElementById('vs-result-line').style.display = 'none';
+                        const t = translations[selects.lang.value] || translations.en;
                         if (score > old) {
-                            document.getElementById('highscore-message-line').innerHTML = 'New High Score!';
+                            document.getElementById('highscore-message-line').innerHTML = t.newHighScoreMsg;
                             document.getElementById('highscore-message-line').style.display = 'block';
                         } else {
-                            document.getElementById('highscore-message-line').innerHTML = `High Score: <span id="final-highscore">${old}</span>`;
+                            document.getElementById('highscore-message-line').innerHTML = `${t.highScoreMsgPrefix}<span id="final-highscore">${old}</span>`;
                             document.getElementById('highscore-message-line').style.display = 'block';
                         }
                         screens.game.style.display = 'flex';
@@ -3982,9 +3996,9 @@ class BeamCpuPlayer {
                 htpGameplayRule7: "Use the \"Save\" button to swap the current pair with a saved pair. If no pair is saved, the current pair will be stored.",
                 htpGameplayRule8: "The game is over when there are no valid empty spots left to place a pair of blocks.",
                 htpGameModesLabel: "<strong>Game Modes:</strong>",
-                htpRelaxModeLabel: "<strong>Relax Mode:</strong>",
-                htpRelaxModeDesc: "Play at your own pace. No timers!",
-                htpTimedModeLabel: "<strong>Timed Mode:</strong>",
+                htpRelaxModeLabel: "<strong>Practice Mode:</strong>",
+                htpRelaxModeDesc: "Play at your own pace with no timers! Your score resets on every new chain, so focus on practicing and building huge combos.",
+				htpTimedModeLabel: "<strong>Timed Mode:</strong>",
                 htpTimedModeDesc: "Score as many points as you can before the 100-second timer runs out.",
                 htpPressureModeLabel: "<strong>Pressure Mode:</strong>",
                 htpPressureModeDesc: "You have a limited time to make each move. This time gets shorter with each successful placement! If you run out of time, a pair will be placed for you at a random empty column.",
@@ -4011,7 +4025,7 @@ class BeamCpuPlayer {
             vi: {
                 pageTitle: "Trò chơi xếp cặp khối rơi",
                 mainMenuTitle: "Trò chơi Xếp cặp khối rơi",
-                relaxMode: "Chế độ Thư giãn",
+                relaxMode: "Chế độ Luyện tập",
                 timedMode: "Chế độ Tính giờ",
                 pressureMode: "Chế độ Áp lực",
                 howToPlay: "Hướng dẫn chơi",
@@ -4044,9 +4058,9 @@ class BeamCpuPlayer {
                 htpGameplayRule7: "Sử dụng nút \"Lưu trữ\" để đổi cặp hiện tại với một cặp đã lưu trữ. Nếu chưa có cặp nào được lưu, cặp hiện tại sẽ được lưu trữ.",
                 htpGameplayRule8: "Trò chơi kết thúc khi không còn ô trống hợp lệ nào để đặt một cặp khối.",
                 htpGameModesLabel: "<strong>Chế độ chơi:</strong>",
-                htpRelaxModeLabel: "<strong>Chế độ Thư giãn:</strong>",
-                htpRelaxModeDesc: "Chơi theo tốc độ của riêng bạn. Không giới hạn thời gian!",
-                htpTimedModeLabel: "<strong>Chế độ Tính giờ:</strong>",
+                htpRelaxModeLabel: "<strong>Chế độ Luyện tập:</strong>",
+                htpRelaxModeDesc: "Chơi không giới hạn thời gian! Điểm số sẽ bị reset về 0 mỗi khi bạn đặt khối trượt, hãy dùng chế độ này để rèn luyện kỹ năng setup và tạo ra những combo khổng lồ.",
+				htpTimedModeLabel: "<strong>Chế độ Tính giờ:</strong>",
                 htpTimedModeDesc: "Ghi càng nhiều điểm càng tốt trước khi hết 100 giây.",
                 htpPressureModeLabel: "<strong>Chế độ Áp lực:</strong>",
                 htpPressureModeDesc: "Bạn bị giới hạn thời gian thực hiện mỗi nước đi. Thời gian này sẽ ngắn dần sau mỗi lần đặt thành công! Nếu hết giờ, một cặp khối sẽ được tự động đặt vào một cột trống ngẫu nhiên.",
