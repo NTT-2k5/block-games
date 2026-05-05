@@ -523,6 +523,7 @@ body {
 						<div class="line"></div>
 						<canvas id="cpu-playfield-canvas" style="border-radius:5px; border: 2px solid #ccc; background:#d3d3d3;"></canvas>
 						<div id="cpu-status-display" style="font-size:0.85em; margin-top:4px; min-height:16px;"></div>
+						<div id="cpu-combo-display" style="font-size:0.85em; font-weight:bold; color:#e53935; min-height:16px;"></div>
 					</div>
 				</div>
                 <div id="playfield-container">
@@ -3683,6 +3684,7 @@ class BeamCpuPlayer {
             // Show/hide CPU area
             document.getElementById('cpu-player-area').style.display = isVsCpu ? 'block' : 'none';
             document.getElementById('cpu-status-display').textContent = '';
+            document.getElementById('cpu-combo-display').textContent = '';
             cpuLostFirst = false;
 
             // Human game
@@ -3797,6 +3799,7 @@ class BeamCpuPlayer {
                         cpuLostFirst = true;
                         cpuPlayer.stop();
                         document.getElementById('cpu-status-display').textContent = '💀';
+                        document.getElementById('cpu-combo-display').textContent = '';
                         document.getElementById('rock-stat').style.display = 'none';
                         if (activeGame) {
                             activeGame.clearTimers();
@@ -3821,7 +3824,10 @@ class BeamCpuPlayer {
 						}
 						if (rocks > 0) activeGame.receiveRocks(rocks);
 					},
-                    onTurnReady: null
+                    onTurnReady: null,
+                    onCombo: (val) => {
+                        document.getElementById('cpu-combo-display').textContent = val >= 1 ? 'Combo ' + val + 'x' : '';
+                    }
                 };
                 cpuGame = new PuyoGame(cpuCanvas, { current: null, next: null, saved: null }, { score: null, highscore: null, time: null }, cpuConfig);
                 // Give CPU board a fixed small size
@@ -3851,7 +3857,10 @@ class BeamCpuPlayer {
 				const selectedDiffText = cpuSelector.options[cpuSelector.selectedIndex].text;
 				const cdiffName = selectedDiffText.split(' — ')[1] || selectedDiffText;
 				document.getElementById('cpu-status-display').textContent = cdiffName;
-                cpuConfig.onTurnReady = () => cpuPlayer.onTurnReady();
+                cpuConfig.onTurnReady = () => {
+					document.getElementById('cpu-combo-display').textContent = '';
+					cpuPlayer.onTurnReady();
+				};
                 // Trigger first CPU move since init() already set allowInput=true
                 cpuPlayer.onTurnReady();
             } else {
