@@ -1,4 +1,4 @@
-const CACHE_NAME = 'puyo-cache-v1';
+const CACHE_NAME = 'puyo-cache-v1.1';
 const urlsToCache = [
   '/block-games/games/puyo.html'
   // Mẹo: Bạn có thể thêm đường dẫn các file CSS/JS/Ảnh mà puyo.html đang dùng vào đây
