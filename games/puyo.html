@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -881,9 +880,10 @@ body {
             this.previewPrimaryPos = null;
             this.previewSecondaryPos = null;
 
-            // Promises
-            this.activeFallPromiseResolver = null;
-            this.activeClearPromiseResolver = null;
+            // State machine
+            this.turnState = 'IDLE'; // IDLE | GRAVITY | WAIT_FALL | SQUISH_WAIT | MATCH | WAIT_CLEAR | TURN_END
+            this.squishWaitTimer = 0;
+            this.scoreAtTurnStart = 0;
 
             // Timers
             this.gameTimerInterval = null;
@@ -921,6 +921,9 @@ body {
             this.clearingBlocks = [];
             this.isFalling = false;
             this.isPaused = false;
+            this.turnState = 'IDLE';
+            this.squishWaitTimer = 0;
+            this.scoreAtTurnStart = 0;
             
             // Mode & Difficulty Setup
             this.activeColorNames = (this.config.difficulty === 'hard') 
@@ -1040,15 +1043,11 @@ console.log(`[${who}] INIT bagLength=${this.blockBag.length} current=${this.curr
                     if (block.y >= block.targetY) {
                         block.y = block.targetY;
                         block.blockData.isFalling = false;
-						if (block.colorName !== 'rock') {
+                        if (block.colorName !== 'rock') {
                             block.blockData.squishTimer = 0.15;
                         }
                         this.fallingBlocks.splice(i, 1);
                     }
-                }
-                if (this.fallingBlocks.length === 0 && this.activeFallPromiseResolver) {
-                    this.activeFallPromiseResolver();
-                    this.activeFallPromiseResolver = null;
                 }
             }
 
@@ -1060,10 +1059,6 @@ console.log(`[${who}] INIT bagLength=${this.blockBag.length} current=${this.curr
                     if (block.animTimer <= 0) {
                         this.clearingBlocks.splice(i, 1);
                     }
-                }
-                if (this.clearingBlocks.length === 0 && this.activeClearPromiseResolver) {
-                    this.activeClearPromiseResolver();
-                    this.activeClearPromiseResolver = null;
                 }
             }
 
@@ -1081,94 +1076,112 @@ console.log(`[${who}] INIT bagLength=${this.blockBag.length} current=${this.curr
                     if (!this.isFalling && this.allowInput) {
                         this.allowInput = false;
                         this._doReleaseRocks(true);
-                        this.processTurn();
+                        this._startTurn();
                     }
                     // If mid-fall, processTurn will call _doReleaseRocks(true) when it finishes
                 }
             }
-        }
-
-        async processTurn() {
-            this.isFalling = true;
-
-            // Gravity Phase
-            let fell;
-            do {
-                fell = await this.applyGravity();
-                // Wait at least 150ms to allow the squish animation to fully complete
-                if (fell) await new Promise(r => setTimeout(r, Math.max(150, GAME_CONFIG.FALL_SPEED * 1.5)));
-            } while (fell);
-
-            // Match Phase — track total score earned this turn for rock calculation
-            const scoreAtTurnStart = this.score;
-            let matchData;
-            do {
-                matchData = await this.findAndClearMatches();
-                if (matchData.count > 0) {
-                    this.combo = (this.combo === 0) ? 1 : this.combo + 1;
-					if (this.combo === 1 && this.config.mode === 'relax') {
-						this.score = 0;
-						if (this.uiEls.score) this.uiEls.score.style.color = '#333333';
-					}
-                    this.maxcombo = Math.max(this.maxcombo, this.combo);
-
-                    let pts = 0;
-                    if (this.combo < 4) pts = matchData.count * Math.pow(2, this.combo-1);
-                    else pts = matchData.count * 8 * (this.combo-3);
-                    this.score += pts;
-					this.maxScore = Math.max(this.maxScore, this.score);
-                    this.updateScoreUI();
-
-                    if (this.config.onCombo) {
-                        this.config.onCombo(this.combo, matchData.positions, this.cellSize, GAME_CONFIG.GRID_PADDING, GAME_CONFIG.GRID_GAP);
-                    }
-
-                    // LIVE VISUAL PREVIEW: Tell the UI the score gained *so far*
-                    if (this.config.onChainStep) {
-                        const scoreGainedSoFar = this.score - scoreAtTurnStart;
-                        this.config.onChainStep(scoreGainedSoFar);
-                    }
-
-                    do {
-                        fell = await this.applyGravity();
-                        // Wait at least 150ms to allow the squish animation to fully complete
-                        if (fell) await new Promise(r => setTimeout(r, Math.max(150, GAME_CONFIG.FALL_SPEED * 1.5)));
-                    } while (fell);
-                }
-            } while (matchData.count > 0);
 			
-			if (this.combo === 0 && this.config.mode === 'relax') {
-                if (this.uiEls.score) this.uiEls.score.style.color = '#9e9e9e'; 
-            }
+			this._tickTurn(deltaTime);
+        }
 
-            // After all clears: send rocks to opponent based on score gained this turn
-            const scoreGained = this.score - scoreAtTurnStart;
-            if (scoreGained > 0 && this.config.onScoreGained) {
-                this.config.onScoreGained(scoreGained);
-            }
+        _startTurn() {
+            this.isFalling = true;
+            this.combo = 0;
+            this.scoreAtTurnStart = this.score;
+            this.turnState = 'GRAVITY';
+        }
 
-            // Release queued rocks onto this board.
-            // forceRelease=true because player just made a placement.
-            // (In the idle-timeout path, rocks were already dropped before processTurn was called.)
-            if (this.rockQueue > 0) this._doReleaseRocks(true);
+        _tickTurn(dt) {
+            for (let guard = 0; guard < 30; guard++) {
+                switch (this.turnState) {
+                    case 'IDLE': return;
 
-            this.isFalling = false;
-
-            if (this.isGameOver()) {
-                this.endGame();
-            } else {
-                if (!this.isPaused) {
-                    this.allowInput = true;
-                    if (this.config.mode === 'pressure') {
-                        this.pressureTurnEffectiveTimeLimit = this.currentPressureTimeLimit;
-                        this.startPressureTurnTimer();
+                    case 'GRAVITY': {
+                        const fell = this._applyGravitySync();
+                        if (fell) {
+                            this.squishWaitTimer = Math.max(0.15, GAME_CONFIG.FALL_SPEED * 1.5 / 1000);
+                            this.turnState = 'WAIT_FALL';
+                            return;
+                        }
+                        this.turnState = 'MATCH';
+                        continue;
                     }
-                    if (this.config.onTurnReady) this.config.onTurnReady();
+
+                    case 'WAIT_FALL':
+                        if (this.fallingBlocks.length > 0) return;
+                        this.turnState = 'SQUISH_WAIT';
+                        continue;
+
+                    case 'SQUISH_WAIT':
+                        this.squishWaitTimer -= dt;
+                        if (this.squishWaitTimer > 0) return;
+                        this.turnState = 'GRAVITY';
+                        continue;
+
+                    case 'MATCH': {
+                        const result = this._findAndClearMatchesSync();
+                        if (result.count > 0) {
+                            this.combo = (this.combo === 0) ? 1 : this.combo + 1;
+                            if (this.combo === 1 && this.config.mode === 'relax') {
+                                this.score = 0;
+                                if (this.uiEls.score) this.uiEls.score.style.color = '#333333';
+                            }
+                            this.maxcombo = Math.max(this.maxcombo, this.combo);
+                            let pts = 0;
+                            if (this.combo < 4) pts = result.count * Math.pow(2, this.combo - 1);
+                            else pts = result.count * 8 * (this.combo - 3);
+                            this.score += pts;
+                            this.maxScore = Math.max(this.maxScore, this.score);
+                            this.updateScoreUI();
+                            if (this.config.onCombo) {
+                                this.config.onCombo(this.combo, result.positions, this.cellSize, GAME_CONFIG.GRID_PADDING, GAME_CONFIG.GRID_GAP);
+                            }
+                            if (this.config.onChainStep) {
+                                this.config.onChainStep(this.score - this.scoreAtTurnStart);
+                            }
+                            this.turnState = 'WAIT_CLEAR';
+                            return;
+                        }
+                        this.turnState = 'TURN_END';
+                        continue;
+                    }
+
+                    case 'WAIT_CLEAR':
+                        if (this.clearingBlocks.length > 0) return;
+                        this.turnState = 'GRAVITY';
+                        continue;
+
+                    case 'TURN_END': {
+                        if (this.combo === 0 && this.config.mode === 'relax') {
+                            if (this.uiEls.score) this.uiEls.score.style.color = '#9e9e9e';
+                        }
+                        const scoreGained = this.score - this.scoreAtTurnStart;
+                        if (scoreGained > 0 && this.config.onScoreGained) {
+                            this.config.onScoreGained(scoreGained);
+                        }
+                        if (this.rockQueue > 0) this._doReleaseRocks(true);
+                        this.isFalling = false;
+                        this.turnState = 'IDLE';
+                        if (this.isGameOver()) {
+                            this.endGame();
+                        } else if (!this.isPaused) {
+                            this.allowInput = true;
+                            if (this.config.mode === 'pressure') {
+                                this.pressureTurnEffectiveTimeLimit = this.currentPressureTimeLimit;
+                                this.startPressureTurnTimer();
+                            }
+                            if (this.config.onTurnReady) this.config.onTurnReady();
+                        }
+                        return;
+                    }
+
+                    default: return;
                 }
             }
         }
 
-        async applyGravity() {
+        _applyGravitySync() {
             let blocksFell = false;
             for (let c = 0; c < GAME_CONFIG.COLS; c++) {
                 for (let r = GAME_CONFIG.ROWS - 2; r >= 0; r--) {
@@ -1183,7 +1196,6 @@ console.log(`[${who}] INIT bagLength=${this.blockBag.length} current=${this.curr
                             this.playfield[r + fallDist][c] = data;
                             this.playfield[r][c] = null;
                             data.isFalling = true;
-
                             this.fallingBlocks.push({
                                 id: data.id,
                                 x: this.gridToPixel(c),
@@ -1198,14 +1210,10 @@ console.log(`[${who}] INIT bagLength=${this.blockBag.length} current=${this.curr
                     }
                 }
             }
-            if (blocksFell) {
-                await new Promise(r => { this.activeFallPromiseResolver = r; });
-                return true;
-            }
-            return false;
+            return blocksFell;
         }
 
-        async findAndClearMatches() {
+        _findAndClearMatchesSync() {
             const toClear = new Set();
             const visited = Array(GAME_CONFIG.ROWS).fill(null).map(() => Array(GAME_CONFIG.COLS).fill(false));
             const positions = [];
@@ -1223,8 +1231,7 @@ console.log(`[${who}] INIT bagLength=${this.blockBag.length} current=${this.curr
                 if (!this.isValidCell(r, c) || visited[r][c] || !this.playfield[r][c] || this.playfield[r][c].colorName !== color) return;
                 visited[r][c] = true;
                 group.add(`${r}-${c}`);
-                const n = getNeighbors(r, c);
-                n.forEach(nb => search(nb.r, nb.c, color, group));
+                getNeighbors(r, c).forEach(nb => search(nb.r, nb.c, color, group));
             };
 
             for (let r = 0; r < GAME_CONFIG.ROWS; r++) {
@@ -1238,16 +1245,13 @@ console.log(`[${who}] INIT bagLength=${this.blockBag.length} current=${this.curr
                 }
             }
 
-            // Rocks adjacent to any clearing block also get cleared
             if (toClear.size > 0) {
                 const extra = new Set();
                 toClear.forEach(str => {
                     const [rs, cs] = str.split('-');
                     const r = parseInt(rs), c = parseInt(cs);
                     getNeighbors(r, c).forEach(nb => {
-                        if (this.playfield[nb.r][nb.c]?.colorName === 'rock') {
-                            extra.add(`${nb.r}-${nb.c}`);
-                        }
+                        if (this.playfield[nb.r][nb.c]?.colorName === 'rock') extra.add(`${nb.r}-${nb.c}`);
                     });
                 });
                 extra.forEach(s => toClear.add(s));
@@ -1269,7 +1273,6 @@ console.log(`[${who}] INIT bagLength=${this.blockBag.length} current=${this.curr
                         this.playfield[r][c] = null;
                     }
                 });
-                await new Promise(r => { this.activeClearPromiseResolver = r; });
                 return { count: toClear.size, positions };
             }
             return { count: 0, positions: [] };
@@ -1526,7 +1529,7 @@ console.log(`[${who}] INIT bagLength=${this.blockBag.length} current=${this.curr
             }
         }
 
-        async handleDragEnd(e) {
+        handleDragEnd(e) {
             if(!this.startCell || this.isPaused) {
                 this.previewPrimaryPos = null; this.previewSecondaryPos = null;
                 return;
@@ -1543,8 +1546,6 @@ console.log(`[${who}] INIT bagLength=${this.blockBag.length} current=${this.curr
             if (pT && sT && this.isValidCell(sT.r, sT.c) && !this.playfield[sT.r][sT.c] && !this.playfield[pT.row][pT.col]) {
                 // VALID PLACE
                 this.allowInput = false;
-                this.combo = 0;
-                
                 this.playfield[pT.row][pT.col] = {
                     colorName: this.currentPair.primary, isPrimary: true,
                     id: Date.now()+'p', isFalling: false
@@ -1563,14 +1564,13 @@ console.log(`[${who}] INIT bagLength=${this.blockBag.length} current=${this.curr
                 }
 
                 this.generateNewPair();
-                await this.processTurn();
+                this._startTurn();
             }
         }
 		
-		async cpuPlace(pT, sT) {
+		cpuPlace(pT, sT) {
 			if (!this.allowInput || this.isFalling || this.isPaused) return;
 			this.allowInput = false;
-			this.combo = 0;
 			this.playfield[pT.r][pT.c] = {
 				colorName: this.currentPair.primary, isPrimary: true,
 				id: Date.now() + 'cp', isFalling: false
@@ -1580,7 +1580,7 @@ console.log(`[${who}] INIT bagLength=${this.blockBag.length} current=${this.curr
 				id: Date.now() + 'cs', isFalling: false
 			};
 			this.generateNewPair();
-			await this.processTurn();
+			this._startTurn();
 		}
 
         // --- Helpers ---
@@ -1720,7 +1720,7 @@ console.log(`[${who}] INIT bagLength=${this.blockBag.length} current=${this.curr
             this.pressureAnimationRequestFrameId = requestAnimationFrame(loop);
         }
 
-        async autoPlacePressureBlock() {
+        autoPlacePressureBlock() {
              // Logic to find empty column
              const cols = [];
              for(let c=0; c<GAME_CONFIG.COLS; c++) 
@@ -1730,7 +1730,6 @@ console.log(`[${who}] INIT bagLength=${this.blockBag.length} current=${this.curr
              
              const c = cols[Math.floor(Math.random()*cols.length)];
              this.allowInput = false;
-             this.combo = 0;
              this.playfield[1][c] = { colorName: this.currentPair.primary, isPrimary: true, id: Date.now(), isFalling: false };
              this.playfield[0][c] = { colorName: this.currentPair.secondary, isPrimary: false, id: Date.now()+1, isFalling: false };
              
@@ -1740,7 +1739,7 @@ console.log(`[${who}] INIT bagLength=${this.blockBag.length} current=${this.curr
                         : Math.max(GAME_CONFIG.PRESSURE_MODE_MIN_TIME, this.currentPressureTimeLimit - (GAME_CONFIG.PRESSURE_MODE_DECREMENT/10));
             
              this.generateNewPair();
-             await this.processTurn();
+             this._startTurn();
         }
 
         updateScoreUI() {
